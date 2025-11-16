@@ -11,6 +11,7 @@ class readSolicitud extends Controller
 {
     public function read(Request $request)
     {
+        // dd('ola');
 
         try {
             $request->validate([
@@ -21,13 +22,14 @@ class readSolicitud extends Controller
                 'current_status' => 'nullable|string',
             ]);
             //dd($request->all());
+            //dd('ola');
             // Find the document
 
             $query = SolicitudesMedicamento::query();
 
             if (!isset($request->collection)) {
                 throw new \InvalidArgumentException('Collection name is required');
-            }
+            } 
 
             $record = new SolicitudesMedicamento;
 
