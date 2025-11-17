@@ -23,7 +23,7 @@ jobs:
         composer require mongodb/laravel-mongodb
         composer install --prefer-dist --no-ansi --no-interaction --no-progress --no-scripts --no-dev --optimize-autoloader
 
-        - name: Deploy to VPS
+    - name: Deploy to VPS
       run: |
         mkdir -p ~/.ssh
         echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
