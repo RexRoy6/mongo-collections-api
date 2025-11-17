@@ -1,28 +1,3 @@
-name: Deploy Laravel API to VPS
-
-on:
-  push:
-    branches: [ main ]
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.2'
-        extensions: mongodb
-
-    - name: Install dependencies
-      run: |
-        composer require mongodb/laravel-mongodb
-        composer install --prefer-dist --no-ansi --no-interaction --no-progress --no-scripts --no-dev --optimize-autoloader
-
     - name: Deploy to VPS
       run: |
         mkdir -p ~/.ssh
@@ -30,51 +5,51 @@ jobs:
         chmod 600 ~/.ssh/deploy_key
         ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
         
-        TIMESTAMP=$(date +%Y%m%d%H%M%S)
         COMMIT_SHORT_SHA=${GITHUB_SHA:0:8}
         
-        # In your deployment section, add these permission commands:
         ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} "
-        cd /opt/api-mongo
-  
-        # Create new release directory
-        mkdir -p releases/${COMMIT_SHORT_SHA}
-        cd releases/${COMMIT_SHORT_SHA}
-  
-        # Clone the repository
-        git clone https://github.com/your-username/your-repo-name.git .
-  
-        # Install dependencies
-        composer install --no-dev --optimize-autoloader
-  
-        # Set permissions for web server
-        chown -R root:www-data .
-        find . -type f -exec chmod 644 {} \;
-        find . -type d -exec chmod 755 {} \;
-        chmod -R 775 storage
-        chmod -R 775 bootstrap/cache
-  
-        # Link .env file
-        ln -nfs ../../.env .env
-  
-        # Link storage directory
-        ln -nfs ../../storage storage
-  
-        # Cache and optimize
-        php artisan config:cache
-        php artisan route:cache
-        php artisan view:cache
-        php artisan optimize
-  
-        # Switch current release
-        cd /opt/api-mongo
-        ln -nfs releases/${COMMIT_SHORT_SHA} current
-  
-        # Clean up old releases (keep last 5)
-        ls -1dt releases/* | tail -n +6 | xargs rm -rf
-  
-        # Reload PHP-FPM
-        systemctl reload php8.2-fpm
-  
-        echo '✅ Laravel API deployed successfully! Release: ${COMMIT_SHORT_SHA}'
+          cd /opt/api-mongo
+          
+          # Create new release directory
+          mkdir -p releases/${COMMIT_SHORT_SHA}
+          cd releases/${COMMIT_SHORT_SHA}
+          
+          # Clone the repository
+          git clone https://github.com/${{ github.repository }} . --depth=1
+          
+          # Install dependencies
+          composer install --no-dev --optimize-autoloader --no-interaction
+          
+          # Create necessary directories
+          mkdir -p bootstrap/cache storage/framework/views
+          
+          # Set permissions (no sudo needed since admin1 owns the files)
+          chmod -R 775 storage
+          chmod -R 775 bootstrap/cache
+          
+          # Link .env file
+          ln -nfs ../../.env .env
+          
+          # Link shared storage
+          ln -nfs ../../storage/app storage/app
+          ln -nfs ../../storage/framework storage/framework
+          ln -nfs ../../storage/logs storage/logs
+          
+          # Cache and optimize
+          php artisan config:cache
+          php artisan route:cache
+          php artisan view:cache
+          php artisan optimize
+          
+          # Switch current release
+          cd /opt/api-mongo
+          ln -nfs releases/${COMMIT_SHORT_SHA} current
+          
+          # Clean up old releases (keep last 5)
+          ls -1dt releases/* 2>/dev/null | tail -n +6 | xargs rm -rf
+          
+          # Reload PHP-FPM with sudo (this might still need passwordless sudo setup)
+          sudo systemctl reload php8.2-fpm
+          
+          echo '✅ Laravel API deployed successfully! Release: ${COMMIT_SHORT_SHA}'
         "
