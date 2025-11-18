@@ -67,7 +67,7 @@ jobs:
           chmod -R 775 bootstrap/cache
           
           # Link .env file
-          ln -nfs ../../../.env .env
+          ln -nfs ../../.env .env
           
           # Link shared storage
           ln -nfs ../../storage/app storage/app
