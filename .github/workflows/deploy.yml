@@ -47,6 +47,20 @@ jobs:
           
           # Create necessary directories
           mkdir -p bootstrap/cache storage/framework/views
+          # Create bootstrap/cache in the new release
+          mkdir -p bootstrap/cache
+
+          # Set correct ownership and permissions
+          sudo chown -R www-data:www-data bootstrap/cache
+          sudo chmod -R 775 bootstrap/cache
+
+          # Create necessary Laravel directories
+          mkdir -p bootstrap/cache
+          mkdir -p storage/framework/views
+          mkdir -p storage/framework/cache
+          mkdir -p storage/framework/sessions
+          mkdir -p storage/logs
+
           
           # Set permissions (no sudo needed since admin1 owns the files)
           chmod -R 775 storage
