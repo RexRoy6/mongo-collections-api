@@ -11,8 +11,6 @@ class readSolicitud extends Controller
 {
     public function read(Request $request)
     {
-        // dd('ola');
-
         try {
             $request->validate([
                 'collection' => 'required|string|max:255',
@@ -21,22 +19,20 @@ class readSolicitud extends Controller
                 'created_at' => 'nullable|string',
                 'current_status' => 'nullable|string',
             ]);
-            //dd($request->all());
-            //dd('ola');
-            // Find the document
 
-            $query = SolicitudesMedicamento::query();
-
-            if (!isset($request->collection)) {
-                throw new \InvalidArgumentException('Collection name is required');
-            } 
-
+            $collection = $request->collection;
+            
+            // Create model instance with the specific collection
             $record = new SolicitudesMedicamento;
+            $record->setCollection($collection); // Set the collection to query
 
             if ($request->uuid) {
                 $uuidsArray = [$request->uuid];
-                $document = $record->findByUuid($uuidsArray, $request->collection);
+                $document = $record->findByUuid($uuidsArray, $collection);
             } else {
+                // Build query using the specific collection
+                $query = $record->newQuery();
+                
                 if ($request->channel) {
                     $query->where('channel', $request->channel);
                 }
@@ -56,15 +52,19 @@ class readSolicitud extends Controller
                     ], 400);
                 }
 
-                $document = $query->get();
-                foreach ($document as $doc) {
-                    $uuidsArray[] = $doc->uuid;
+                $documents = $query->get();
+                
+                if ($documents->isEmpty()) {
+                    return response()->json([
+                        'message' => 'Record not found',
+                    ], 404);
                 }
 
-                $document = $record->findByUuid($uuidsArray, $request->collection);
+                $uuidsArray = $documents->pluck('uuid')->toArray();
+                $document = $record->findByUuid($uuidsArray, $collection);
             }
 
-            if ($document) {
+            if ($document && !empty($document)) {
                 return response()->json($document, 200);
             }
 
@@ -76,7 +76,6 @@ class readSolicitud extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'error' => $e->getMessage()
-
             ], 500);
         }
     }
