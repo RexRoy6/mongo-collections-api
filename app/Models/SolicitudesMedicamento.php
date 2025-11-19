@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 class SolicitudesMedicamento extends Model
 {
     protected $connection = 'mongodb';
-    protected $collection = 'solicitudes_medicamentos';
+    protected $collection = 'test';
     protected $primaryKey = 'uuid';
     protected $keyType = 'string';
     public $incrementing = false;
