@@ -32,11 +32,15 @@ return [
     'connections' => [
 
            'mongodb' => [
-            'driver'   => 'mongodb',
-            'dsn' => env('mongodb_DSN'),
-            'database' => env('mongodb_DATABASE'),
-            'collection' => 'solicitudes_medicamentos_x'
-        ],
+    'driver' => 'mongodb',
+    'dsn' => env('mongodb_DSN'),
+    'database' => env('mongodb_DATABASE'),
+    'options' => [
+        'ssl' => true,
+        'tls' => true,
+        'authSource' => 'admin',
+    ],
+],
 
 
         'sqlite' => [
