@@ -3,39 +3,63 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\SolicitudesMedicamento;
-use Validator;
-use Illuminate\Validation\ValidationException;
+use App\Models\Order;
+use Illuminate\Support\Facades\Log;
+
 class createSolicitud extends Controller
 {
-public function store(Request $request)
-{
-    try {
-        $input = $request->validate([
-            'channel' => 'required|string|in:pwa,web,app,postman,DocExtTest,DocExt',
-            'created_by' => 'required|string|max:255',
-            'solicitud' => 'nullable|array',
-            'collection' => 'required|string|max:255'
-        ]);
+    public function store(Request $request)
+    {
+        try {
+            // Validate using model rules + collection
+            $input = $request->validate(array_merge(
+                Order::rules(),
+                ['collection' => 'required|string|max:255']
+            ));
 
-        $solicitud = SolicitudesMedicamento::createSolicitud($input);
+            // Create instance with correct collection
+            $order = new Order();
+            $order->setCollection($input['collection']);
 
-        //dd($solicitud->created_at);
-        //$solicitud->created_at->format('Y-m-d H:i:s'),
+            // Fill model fields
+            $order->fill([
+                'channel'     => $input['channel'],
+                'created_by'  => $input['created_by'],
+                'solicitud'   => $input['solicitud'] ?? [],
+            ]);
 
-        return response()->json([
-            'uuid' => $solicitud->uuid,
-            'created_at' => $solicitud->created_at,
-            'channel' => $solicitud->channel,
-            'created_by' => $solicitud->created_by,
-            'status_history' => $solicitud->status_history,
-            'solicitud' => (object)$solicitud->solicitud
-        ], 200);
-    } catch (\Exception $e) {
-        return response()->json([
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ], 500);
+            // Save base order (UUID + timestamps)
+            $order->save();
+
+            /**
+             * ---------------------------------------------------------
+             * ADD INITIAL STATUS USING THE TRAIT
+             * ---------------------------------------------------------
+             */
+            $order->addStatus(
+                status: 'created',
+                updatedBy: $input['created_by'],
+                notes: ''
+            );
+
+            return response()->json([
+                'uuid'           => $order->uuid,
+                'created_at'     => $order->created_at,
+                'channel'        => $order->channel,
+                'created_by'     => $order->created_by,
+                'current_status' => $order->current_status,
+                'status_history' => $order->status_history,
+                'solicitud'      => (object) $order->solicitud,
+            ], 200);
+
+        } catch (\Exception $e) {
+
+            Log::error("Error creating solicitud", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
-}
 }
