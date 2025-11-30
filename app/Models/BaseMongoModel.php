@@ -59,4 +59,11 @@ abstract class BaseMongoModel extends Model
 
         return $array;
     }
+
+    protected function serializeDate(\DateTimeInterface $date)
+{
+    return Carbon::parse($date)
+        ->setTimezone(env('timeZone')) // change timezone in env? or in request
+        ->format('Y-m-d H:i:s');
+}
 }
