@@ -54,44 +54,4 @@ class deleteSolicitud extends Controller
         }
     }
 
-
-
-    public function cancelSolicitud(Request $request)
-    {
-        try {
-            $uuid = $request->validate([
-                'uuid' => 'required|uuid'
-            ]);
-            $statusData = $request->validate([
-                //'status' => 'required|string|in:cancelled',
-                'updated_by' => 'required|string',
-                'notes' => 'nullable|string'
-            ]);
-            //dd($uuid['uuid'],$statusData);
-
-
-
-            $collection = $request->validate([
-                'collection' => 'required|string|max:255'
-            ]);
-
-
-            $model = new SolicitudesMedicamento();
-            $updatedDocument = $model->cancelledStatus($uuid['uuid'], $statusData, $collection['collection']);
-
-            return response()->json([
-                'message' => 'Status updated successfully',
-                'document' => $updatedDocument
-            ], 200);
-
-
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => $e->getMessage()
-
-            ], 500);
-        }
-    }
-
 }
