@@ -15,7 +15,7 @@ class ApiSolicitudes
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $apiKeyF = $request->header('API-KEY');
+        $apiKeyF = $request->header('API-KEY') || $request->header('x-api-key');
         $envApiKey = env('API_KEY');
         if ($apiKeyF == $envApiKey) {
             return $next($request);
