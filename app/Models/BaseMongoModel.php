@@ -66,4 +66,22 @@ abstract class BaseMongoModel extends Model
         ->setTimezone(env('timeZone')) // change timezone in env? or in request
         ->format('Y-m-d H:i:s');
 }
+
+
+public static function deleteByUuid(string $uuid, string $collection)
+{
+    $model = new static();
+    $model->setCollection($collection);
+
+    $doc = $model->where('uuid', $uuid)->first();
+
+    if (!$doc) {
+        return false;
+    }
+
+    return $doc->delete();
+}
+
+
+
 }
