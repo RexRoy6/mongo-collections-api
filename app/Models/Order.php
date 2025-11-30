@@ -40,6 +40,7 @@ class Order extends BaseMongoModel
     public static function allowedStatuses()
     {
         return [
+            'created',
             'pending',
             'preparing',
             'ready',
