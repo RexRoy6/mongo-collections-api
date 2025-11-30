@@ -33,6 +33,7 @@ class Order extends BaseMongoModel
             'channel' => 'required|string',
             'created_by' => 'required|string',
             'solicitud' => 'array',
+            'notes'=> 'nullable|string'
         ];
     }
 

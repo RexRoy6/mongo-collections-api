@@ -17,9 +17,6 @@ Route::post('/ticket', [createSolicitud::class, 'store']);
 //rutas metodo delete
 //esta ruta es concuidado , destuye un registro por su uuid, no usar mas que para limpiar
 Route::delete('/ticket/destroy', [deleteSolicitud::class, 'destroy']);
-//ruta para desactivar un registro de manera permanente
-Route::delete('/ticket', [deleteSolicitud::class, 'cancelSolicitud']);
-
 
 //ruta para el metodo get:
 Route::get('/ticket', [readSolicitud::class, 'read']);

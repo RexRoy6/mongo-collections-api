@@ -39,7 +39,7 @@ class createSolicitud extends Controller
             $order->addStatus(
                 status: 'created',
                 updatedBy: $input['created_by'],
-                notes: ''
+                notes: $input['notes']//aqui agregar las notas
             );
 
             return response()->json([
