@@ -3,75 +3,69 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\SolicitudesMedicamento;
-use Illuminate\Validation\Rules\Exists;
+use App\Models\Order;              // or any model extending BaseMongoModel
 use Illuminate\Support\Carbon;
 
-class readSolicitud extends Controller
+class ReadSolicitud extends Controller
 {
     public function read(Request $request)
     {
         try {
-            $request->validate([
-                'collection' => 'required|string|max:255',
-                'uuid' => 'nullable|uuid',
-                'channel' => 'nullable|string',
-                'created_at' => 'nullable|string',
-                'current_status' => 'nullable|string',
+            $validated = $request->validate([
+                'collection'      => 'required|string|max:255',
+                'uuid'            => 'nullable|uuid',
+                'channel'         => 'nullable|string',
+                'created_at'      => 'nullable|date',
+                'current_status'  => 'nullable|string',
             ]);
 
-            $collection = $request->collection;
-            
-            // Create model instance with the specific collection
-            $record = new SolicitudesMedicamento;
-            $record->setCollection($collection); // Set the collection to query
+            // Instantiate generic Mongo model with dynamic collection
+            $model = (new Order)->setCollection($validated['collection']);
 
-            if ($request->uuid) {
-                $uuidsArray = [$request->uuid];
-                $document = $record->findByUuid($uuidsArray, $collection);
-            } else {
-                // Build query using the specific collection
-                $query = $record->newQuery();
-                
-                if ($request->channel) {
-                    $query->where('channel', $request->channel);
-                }
+            // -------------------------------------------------------
+            // 1. GET BY UUID
+            // -------------------------------------------------------
+            if ($request->filled('uuid')) {
+                $doc = $model->where('uuid', $request->uuid)->first();
 
-                if ($request->created_at) {
-                    $timestamp = Carbon::parse($request->created_at);
-                    $query->whereDate('created_at', $timestamp);
-                }
-
-                if ($request->current_status) {
-                    $query->where('current_status', $request->current_status);
-                }
-
-                if (!$request->channel && !$request->created_at && !$request->current_status && !$request->uuid) {
-                    return response()->json([
-                        'message' => 'Ningún criterio de búsqueda proporcionado',
-                    ], 400);
-                }
-
-                $documents = $query->get();
-                
-                if ($documents->isEmpty()) {
-                    return response()->json([
-                        'message' => 'Record not found',
-                    ], 404);
-                }
-
-                $uuidsArray = $documents->pluck('uuid')->toArray();
-                $document = $record->findByUuid($uuidsArray, $collection);
+                return $doc
+                    ? response()->json($doc, 200)
+                    : response()->json(['message' => 'Record not found'], 404);
             }
 
-            if ($document && !empty($document)) {
-                return response()->json($document, 200);
+            // -------------------------------------------------------
+            // 2. BUILD QUERY DYNAMICALLY
+            // -------------------------------------------------------
+            $query = $model->newQuery();
+
+            if ($request->filled('channel')) {
+                $query->where('channel', $request->channel);
             }
 
-            return response()->json([
-                'message' => 'Record not found',
-                'uuid' => $request->uuid
-            ], 404);
+            if ($request->filled('created_at')) {
+                $query->whereDate('created_at', Carbon::parse($request->created_at));
+            }
+
+            if ($request->filled('current_status')) {
+                $query->where('current_status', $request->current_status);
+            }
+
+            // If no filters provided
+            if ($query->count() === 0 && !$request->only(['channel', 'created_at', 'current_status'])) {
+                return response()->json([
+                    'message' => 'No query filters provided'
+                ], 400);
+            }
+
+            $documents = $query->get();
+
+            if ($documents->isEmpty()) {
+                return response()->json([
+                    'message' => 'No records found'
+                ], 404);
+            }
+
+            return response()->json($documents, 200);
 
         } catch (\Exception $e) {
             return response()->json([
