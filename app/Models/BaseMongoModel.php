@@ -78,10 +78,9 @@ public static function deleteByUuid(string $uuid, string $collection)
     if (!$doc) {
         return false;
     }
+    $doc->setCollection($collection);
 
     return $doc->delete();
 }
-
-
 
 }
