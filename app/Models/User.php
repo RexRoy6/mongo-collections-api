@@ -2,47 +2,61 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
+use App\Models\BaseMongoModel;
 
-class User extends Authenticatable
+class User extends BaseMongoModel
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    protected $collection = 'users';
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
-        'name',
-        'email',
-        'password',
+        'role',
+        'room_number',
+        'room_key',
+        'guest_name',
+        'guest_uuid',
+        'is_occupied'
+    ];
+
+    protected $attributes = [
+        'guest_name'  => null,
+        'guest_uuid'  => null,
+        'is_occupied' => false
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
+     * Validation rules for creating/updating users
      */
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
-
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
+    public static function rules()
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'role'        => 'required|string|in:client,kitchen,admin',
+            'room_number' => 'nullable|string',
+            'room_key'    => 'nullable|string',
+            'guest_name'  => 'nullable|string',
         ];
+    }
+
+    /**
+     * Assign guest to room after login
+     */
+    public function assignGuest(string $guestName)
+    {
+        $this->guest_name = $guestName;
+        $this->guest_uuid = (string) \Illuminate\Support\Str::uuid();
+        $this->is_occupied = true;
+
+        return $this->save();
+    }
+
+    /**
+     * Completely reset a room after order delivered/cancelled
+     */
+    public function resetRoom()
+    {
+        $this->guest_name = null;
+        $this->guest_uuid = null;
+        $this->is_occupied = false;
+
+        return $this->save();
     }
 }
