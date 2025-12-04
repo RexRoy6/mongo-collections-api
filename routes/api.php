@@ -7,6 +7,8 @@ use  App\Http\Controllers\deleteSolicitud;
 use  App\Http\Controllers\readSolicitud;
 use App\Http\Controllers\updateSolicitud;
 use App\Http\Controllers\AuthClientController;
+use App\Http\Controllers\HotelOrderController;
+use App\Http\Controllers\AdminRoomsController;
 
 Route::middleware('api.solicitudes')->group(function () {
 
@@ -32,6 +34,8 @@ Route::prefix('auth/client')->group(function () {
     Route::post('/register-name',  [AuthClientController::class, 'registerName']);
     Route::put('/reset-room',      [AuthClientController::class, 'resetRoom']);
 });
+Route::post('/admin/rooms/create', [AdminRoomsController::class, 'create']);
+Route::post('/hotel/orders/create', [HotelOrderController::class, 'create']);
 
 
 });
