@@ -5,12 +5,15 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Http\Controllers\createSolicitud;
+use Illuminate\Support\Facades\Log;
 
 class HotelOrderController extends Controller
 {
     public function create(Request $request)
     {
-        // Validate hotel order request
+
+        try{
+             // Validate hotel order request
         $validated = $request->validate([
             'guest_uuid' => 'required|uuid',
             'solicitud'  => 'required|array'
@@ -29,14 +32,23 @@ class HotelOrderController extends Controller
         /**
          * We now "inject" the request fields expected by createSolicitud
          */
+        //dd($validated['solicitud']['note']);
         $mergedRequest = new Request([
             'channel'     => 'hotel-app',         // or dynamic
             'created_by'  => $guest->guest_uuid,
             'collection'  => 'orders',
             'solicitud'   => $validated['solicitud'],
-            'notes'       => null
+            'notes'       => $validated['solicitud']['note']
         ]);
 
+
+        }catch (\Exception $e) {
+
+            Log::error("Error creating solicitud hotel order", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
         /**
          * Reuse your generic createSolicitud controller.
          */
