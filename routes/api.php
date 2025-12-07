@@ -8,7 +8,9 @@ use  App\Http\Controllers\readSolicitud;
 use App\Http\Controllers\updateSolicitud;
 use App\Http\Controllers\AuthClientController;
 use App\Http\Controllers\HotelOrderController;
-use App\Http\Controllers\AdminRoomsController;
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AdminKitchenController;
+use App\Http\Controllers\KitchenAuthController;
 
 Route::middleware('api.solicitudes')->group(function () {
 
@@ -29,12 +31,31 @@ Route::put('/ticket', [updateSolicitud::class, 'update']);
 
 
 
+Route::post('/admin/rooms/create', [AdminController::class, 'create']);
+Route::post('/admin/kitchenUsers/create', [AdminKitchenController::class, 'create']);
+
+#client  only
 Route::prefix('auth/client')->group(function () {
-    Route::post('/login',          [AuthClientController::class, 'login']);
-    Route::post('/register-name',  [AuthClientController::class, 'registerName']);
+    Route::post('/login', [AuthClientController::class, 'loginOrRegister']);
     Route::put('/reset-room',      [AuthClientController::class, 'resetRoom']);
 });
-Route::post('/admin/rooms/create', [AdminRoomsController::class, 'create']);
+
+// CLIENT ORDER CANCEL
+Route::put('client/orders', [HotelOrderController::class, 'cancel']);
+
+
+
+##kitchen only
+Route::prefix('auth/kitchen')->group(function () {
+Route::post('/login', [KitchenAuthController::class, 'login']);
+Route::put('/logout', [KitchenAuthController::class, 'logout']);
+});
+
+Route::get('kitchen/orders', [HotelOrderController::class, 'listOrders']);
+Route::put('kitchen/ordersUpdate', [HotelOrderController::class, 'updateOrderStatus']);
+
+
+#orders
 Route::post('/hotel/orders/create', [HotelOrderController::class, 'create']);
 
 

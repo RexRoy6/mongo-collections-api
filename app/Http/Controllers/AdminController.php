@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 
-class AdminRoomsController extends Controller
+class AdminController extends Controller
 {
     /**
      * Create one or multiple hotel rooms.
@@ -15,8 +15,8 @@ class AdminRoomsController extends Controller
     {
         $validated = $request->validate([
             'rooms' => 'required|array|min:1',
-            'rooms.*.room_number' => 'required|string',
-            'rooms.*.room_key'    => 'required|string',
+            'rooms.*.room_number' => 'required|int',
+            'rooms.*.room_key'    => 'required|int',
         ]);
 
         $createdRooms = [];

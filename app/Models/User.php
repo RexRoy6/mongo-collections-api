@@ -8,19 +8,37 @@ class User extends BaseMongoModel
 {
     protected $collection = 'users';
 
+   
     protected $fillable = [
         'role',
+
+        // ROOM USERS
         'room_number',
         'room_key',
         'guest_name',
         'guest_uuid',
-        'is_occupied'
+        'is_occupied',
+
+        // KITCHEN USERS
+        'name_kitchenUser',
+        'number_kitchenNumber',
+        'kitchenUser_key',
+        'kitchenUser_uuid',
+        'is_active'
     ];
 
     protected $attributes = [
-        'guest_name'  => null,
-        'guest_uuid'  => null,
-        'is_occupied' => false
+        // room defaults
+        'guest_name'         => null,
+        'guest_uuid'         => null,
+        'is_occupied'        => false,
+
+        // kitchen defaults
+        'name_kitchenUser'   => null,
+        'number_kitchenNumber' => null,
+        'kitchenUser_key'     => null,
+        'kitchenUser_uuid'    => null,
+        'is_active'           => false,
     ];
 
     /**
@@ -30,8 +48,8 @@ class User extends BaseMongoModel
     {
         return [
             'role'        => 'required|string|in:client,kitchen,admin',
-            'room_number' => 'nullable|string',
-            'room_key'    => 'nullable|string',
+            'room_number' => 'nullable|int',
+            'room_key'    => 'nullable|int',
             'guest_name'  => 'nullable|string',
         ];
     }
@@ -56,6 +74,28 @@ class User extends BaseMongoModel
         $this->guest_name = null;
         $this->guest_uuid = null;
         $this->is_occupied = false;
+
+        return $this->save();
+    }
+
+     /**
+     * Assign login to kitchen staff
+     */
+    public function activateKitchenUser()
+    {
+        $this->kitchenUser_uuid = (string) \Illuminate\Support\Str::uuid();
+        $this->is_active = true;
+
+        return $this->save();
+    }
+
+    /**
+     * Logout kitchen user
+     */
+    public function deactivateKitchenUser()
+    {
+        $this->is_active = false;
+        $this->kitchenUser_uuid = null;
 
         return $this->save();
     }
