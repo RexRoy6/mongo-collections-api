@@ -30,9 +30,12 @@ Route::get('/ticket', [readSolicitud::class, 'read']);
 Route::put('/ticket', [updateSolicitud::class, 'update']);
 
 
-
+#admin routes only
 Route::post('/admin/rooms/create', [AdminController::class, 'create']);
 Route::post('/admin/kitchenUsers/create', [AdminKitchenController::class, 'create']);
+Route::post('/admin/createMenu', [AdminController::class, 'createMenu']);
+//Route::get('/admin/menu/{menu_key}', [AdminController::class, 'getMenu']);
+
 
 #client  only
 Route::prefix('auth/client')->group(function () {

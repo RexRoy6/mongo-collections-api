@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Models\Menu;
 
 class AdminController extends Controller
 {
@@ -60,4 +61,39 @@ class AdminController extends Controller
             'rooms'   => $createdRooms
         ], 200);
     }
+
+    public function createMenu(Request $request)
+{
+    $validated = $request->validate([
+        'menu_key' => 'required|string',        // e.g., "menu_cafe"
+        'menu_info' => 'nullable|string',
+        'items' => 'required|array|min:1',
+        'items.*.name'  => 'required|string',
+        'items.*.price' => 'required|numeric|min:0',
+        'items.*.image' => 'nullable|string'
+    ]);
+
+    // Check if this menu already exists (you might want to update instead)
+    $existing = Menu::where('menu_key', $validated['menu_key'])->first();
+
+    if ($existing) {
+        return response()->json([
+            'message' => 'Menu already exists',
+            'menu' => $existing
+        ], 409);
+    }
+
+    $menu = new Menu();
+    $menu->menu_key = $validated['menu_key'];
+    $menu->menu_info = $validated['menu_info'] ?? '';
+    $menu->items = $validated['items'];
+
+    $menu->save();
+
+    return response()->json([
+        'message' => 'Menu created successfully',
+        'menu' => $menu
+    ], 201);
+}
+
 }
