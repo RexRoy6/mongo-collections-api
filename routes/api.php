@@ -40,10 +40,6 @@ Route::prefix('auth/client')->group(function () {
     Route::put('/reset-room',      [AuthClientController::class, 'resetRoom']);
 });
 
-// CLIENT ORDER CANCEL
-Route::put('client/orders', [HotelOrderController::class, 'cancel']);
-
-
 
 ##kitchen only
 Route::prefix('auth/kitchen')->group(function () {
@@ -55,8 +51,11 @@ Route::get('kitchen/orders', [HotelOrderController::class, 'listOrders']);
 Route::put('kitchen/ordersUpdate', [HotelOrderController::class, 'updateOrderStatus']);
 
 
-#orders
-Route::post('/hotel/orders/create', [HotelOrderController::class, 'create']);
+#orders clients
+Route::post('/hotel/orders', [HotelOrderController::class, 'create']);
+Route::get('/hotel/orders', [HotelOrderController::class, 'read']);
+// CLIENT ORDER CANCEL
+Route::put('/hotel/orders', [HotelOrderController::class, 'cancel']);
 
 
 });

@@ -75,7 +75,7 @@ public function canTransition(string $role, string $newStatus): bool
     return in_array($newStatus, $workflow[$role][$current] ?? []);
 }
 
-public function updateStatus(string $role, string $newStatus, string $notes = '')
+public function updateStatus(string $role, string $newStatus, string $notes)
 {
     if (!$this->canTransition($role, $newStatus)) {
         return false;
