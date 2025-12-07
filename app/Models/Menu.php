@@ -26,7 +26,8 @@ class Menu extends BaseMongoModel
             'items'     => 'required|array|min:1',
             'items.*.name'  => 'required|string',
             'items.*.price' => 'required|numeric|min:0',
-            'items.*.image' => 'nullable|string'
+            'items.*.image' => 'nullable|string',
+            'currency' => 'required|string|in:mxn,usd'
         ];
     }
 }

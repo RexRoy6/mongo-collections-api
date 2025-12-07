@@ -27,6 +27,7 @@ class HotelOrderController extends Controller
                 'solicitud.items' => 'required|array|min:1',
                 'solicitud.menu_key' => 'nullable|string',
                 'solicitud.note' => 'nullable|string',
+                'solicitud.currency' => 'required|string',
                 // optionally accept client-sent currency, payment method, etc.
             ]);
 
@@ -114,9 +115,9 @@ class HotelOrderController extends Controller
             $finalSolicitud['menu_key'] = $menuKey;
             $finalSolicitud['total'] = $totalCents / 100;
             $finalSolicitud['total_cents'] = $totalCents;
+            $finalSolicitud['currency'] = $validated['solicitud']['currency'];
             // optionally add payment method placeholder:
             // $finalSolicitud['payment_method'] = $validated['solicitud']['payment_method']
-            //dd($validated,$finalSolicitud);
            
 
         /**
