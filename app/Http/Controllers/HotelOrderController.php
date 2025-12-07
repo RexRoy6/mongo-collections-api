@@ -16,26 +16,108 @@ class HotelOrderController extends Controller
 
         try{
 
+           // 1) validate guest header/session first
             $guest = $this->validateGuestUser($request);
-    
             if (!$guest) return response()->json(['message' => 'Unauthorized'], 403);
 
+            // 2) validate incoming payload
+            $validated = $request->validate([
+                'guest_uuid' => 'required|uuid',
+                'solicitud' => 'required|array',
+                'solicitud.items' => 'required|array|min:1',
+                'solicitud.menu_key' => 'nullable|string',
+                'solicitud.note' => 'nullable|string',
+                // optionally accept client-sent currency, payment method, etc.
+            ]);
 
-             // Validate hotel order request
-        $validated = $request->validate([
-            'guest_uuid' => 'required|uuid',
-            'solicitud'  => 'required|array'
-        ]);
+            // 3) re-check guest is active (safety)
+            $guest = User::where('guest_uuid', $validated['guest_uuid'])
+                         ->where('role', 'client')
+                         ->where('is_occupied', true)
+                         ->first();
 
-        // Validate guest
-        $guest = User::where('guest_uuid', $validated['guest_uuid'])
-                     ->where('role', 'client')
-                     ->where('is_occupied', true)
-                     ->first();
+            if (!$guest) {
+                return response()->json(['message' => 'Guest session not found'], 404);
+            }
 
-        if (!$guest) {
-            return response()->json(['message' => 'Guest session not found'], 404);
-        }
+            // 4) determine menu_key (use provided or default)
+            $menuKey = $validated['solicitud']['menu_key'] ?? 'menu_cafe';
+
+            // 5) load menu
+            $menu = Menu::where('menu_key', $menuKey)->first();
+            if (!$menu) {
+                return response()->json([
+                    'message' => 'Menu not found',
+                    'menu_key' => $menuKey
+                ], 404);
+            }
+
+            // 6) build lookup map (name -> item)
+            $lookup = [];
+            foreach ($menu->items as $mi) {
+                // normalize item name for lookup (case-insensitive)
+                $lookup[strtolower($mi['name'])] = $mi;
+            }
+
+            // 7) validate each ordered item and compute totals (in cents)
+            $orderItems = [];
+            $totalCents = 0;
+            foreach ($validated['solicitud']['items'] as $idx => $it) {
+                // validate minimal fields
+                if (!isset($it['name'])) {
+                    return response()->json(['message' => "Item at index $idx missing name"], 422);
+                }
+                $nameKey = strtolower($it['name']);
+                if (!isset($lookup[$nameKey])) {
+                    return response()->json([
+                        'message' => "Item not found in menu",
+                        'item' => $it['name'],
+                        'menu_key' => $menuKey
+                    ], 422);
+                }
+
+                $menuItem = $lookup[$nameKey];
+
+                // quantity
+                $qty = isset($it['qty']) ? (int)$it['qty'] : 1;
+                if ($qty < 1) {
+                    return response()->json(['message' => "Invalid qty for item {$it['name']}"], 422);
+                }
+
+                // price check: server is authority. compute priceCents from menu
+                // (store prices as numbers in menu, assumed currency e.g. MXN)
+                $menuPrice = $menuItem['price'];
+                if (!is_numeric($menuPrice)) {
+                    return response()->json(['message' => "Invalid menu price for {$menuItem['name']}"], 500);
+                }
+
+                // use cents (integer) math
+                $priceCents = (int) round($menuPrice * 100);
+                $lineTotalCents = $priceCents * $qty;
+                $totalCents += $lineTotalCents;
+
+                // build final order item (server authoritative price)
+                $orderItems[] = [
+                    'name' => $menuItem['name'],
+                    'qty'  => $qty,
+                    'unit_price' => $menuPrice,
+                    'unit_price_cents' => $priceCents,
+                    'line_total' => $lineTotalCents / 100, // float for output
+                    'line_total_cents' => $lineTotalCents,
+                    'image' => $menuItem['image'] ?? null
+                ];
+            }
+
+            // 8) build final solicitud payload (adds total + items + menu_key + payment placeholders)
+            $finalSolicitud = $validated['solicitud'];
+            $finalSolicitud['items'] = $orderItems;
+            $finalSolicitud['menu_key'] = $menuKey;
+            $finalSolicitud['total'] = $totalCents / 100;
+            $finalSolicitud['total_cents'] = $totalCents;
+            // optionally add payment method placeholder:
+            // $finalSolicitud['payment_method'] = $validated['solicitud']['payment_method']
+            //dd($validated,$finalSolicitud);
+           
 
         /**
          * We now "inject" the request fields expected by createSolicitud
@@ -45,7 +127,7 @@ class HotelOrderController extends Controller
             'channel'     => 'hotel-app',         // or dynamic
             'created_by'  => $guest->guest_uuid,
             'collection'  => 'orders',
-            'solicitud'   => $validated['solicitud'],
+            'solicitud'   => $finalSolicitud,
             'notes'       => $validated['solicitud']['note']
         ]);
 
