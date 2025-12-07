@@ -11,6 +11,7 @@ use App\Http\Controllers\HotelOrderController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminKitchenController;
 use App\Http\Controllers\KitchenAuthController;
+use App\Http\Controllers\MenuController;
 
 Route::middleware('api.solicitudes')->group(function () {
 
@@ -48,6 +49,8 @@ Route::post('/hotel/orders', [HotelOrderController::class, 'create']);
 Route::get('/hotel/orders', [HotelOrderController::class, 'read']);
 // CLIENT ORDER CANCEL
 Route::put('/hotel/orders', [HotelOrderController::class, 'cancel']);
+// Client-facing menu endpoints
+Route::get('/hotel/menus', [MenuController::class, 'getMenuByKey']);
 
 
 
