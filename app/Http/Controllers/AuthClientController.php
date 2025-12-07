@@ -100,4 +100,57 @@ class AuthClientController extends Controller
 
         return response()->json(['message' => 'Room reset successfully'], 200);
     }
+
+    public function loginOrRegister(Request $request)
+{
+    $validated = $request->validate([
+        'room_number' => 'required|string',
+        'room_key'    => 'required|string',
+        'guest_name'  => 'nullable|string' // only needed if registering
+    ]);
+
+    // Find room
+    $room = User::where('role', 'client')
+        ->where('room_number', $validated['room_number'])
+        ->first();
+
+    if (!$room) {
+        return response()->json(['message' => 'Room not found'], 404);
+    }
+
+    // Check key
+    if ($room->room_key !== $validated['room_key']) {
+        return response()->json(['message' => 'Invalid room key'], 403);
+    }
+
+    // If already occupied → return existing guest
+    if ($room->is_occupied && $room->guest_uuid) {
+        return response()->json([
+            'message'     => 'Room already occupied',
+            'guest_uuid'  => $room->guest_uuid
+            //'guest_name'  => $room->guest_name,
+            //'room_number' => $room->room_number
+        ], 200);
+    }
+
+    // If room is empty → register guest
+    if (!$room->is_occupied) {
+
+        if (!$validated['guest_name']) {
+            return response()->json([
+                'message' => 'guest_name is required for new guest'
+            ], 422);
+        }
+
+        $room->assignGuest($validated['guest_name']);
+
+        return response()->json([
+            'message'     => 'Guest registered',
+            'guest_uuid'  => $room->guest_uuid,
+            'guest_name'  => $room->guest_name,
+            'room_number' => $room->room_number
+        ], 200);
+    }
+}
+
 }

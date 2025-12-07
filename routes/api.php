@@ -29,12 +29,13 @@ Route::put('/ticket', [updateSolicitud::class, 'update']);
 
 
 
+Route::post('/admin/rooms/create', [AdminRoomsController::class, 'create']);
+
+
 Route::prefix('auth/client')->group(function () {
-    Route::post('/login',          [AuthClientController::class, 'login']);
-    Route::post('/register-name',  [AuthClientController::class, 'registerName']);
+    Route::post('/login', [AuthClientController::class, 'loginOrRegister']);
     Route::put('/reset-room',      [AuthClientController::class, 'resetRoom']);
 });
-Route::post('/admin/rooms/create', [AdminRoomsController::class, 'create']);
 Route::post('/hotel/orders/create', [HotelOrderController::class, 'create']);
 
 
