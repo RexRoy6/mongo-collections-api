@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Http\Controllers\createSolicitud;
 use Illuminate\Support\Facades\Log;
 use App\Models\Order;
+use App\Models\Menu;
 
 class HotelOrderController extends Controller
 {
