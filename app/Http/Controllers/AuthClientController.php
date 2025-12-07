@@ -83,8 +83,8 @@ class AuthClientController extends Controller
     public function resetRoom(Request $request)
     {
         $validated = $request->validate([
-            'room_number' => 'required|string',
-            'room_key'    => 'required|string',
+            'room_number' => 'required|int',
+            'room_key'    => 'required|int',
         ]);
 
         $room = User::where('role', 'client')
@@ -94,6 +94,10 @@ class AuthClientController extends Controller
 
         if (!$room) {
             return response()->json(['message' => 'Room not found'], 404);
+        
+        }elseif($room->guest_name == null || $room->is_occupied = false){
+            return response()->json(['message' => 'Room has no client/user assigned'], 200);
+
         }
 
         $room->resetRoom();
@@ -104,8 +108,8 @@ class AuthClientController extends Controller
     public function loginOrRegister(Request $request)
 {
     $validated = $request->validate([
-        'room_number' => 'required|string',
-        'room_key'    => 'required|string',
+        'room_number' => 'required|int',
+        'room_key'    => 'required|int',
         'guest_name'  => 'nullable|string' // only needed if registering
     ]);
 

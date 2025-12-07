@@ -15,8 +15,8 @@ class AdminRoomsController extends Controller
     {
         $validated = $request->validate([
             'rooms' => 'required|array|min:1',
-            'rooms.*.room_number' => 'required|string',
-            'rooms.*.room_key'    => 'required|string',
+            'rooms.*.room_number' => 'required|int',
+            'rooms.*.room_key'    => 'required|int',
         ]);
 
         $createdRooms = [];

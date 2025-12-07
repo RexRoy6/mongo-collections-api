@@ -30,8 +30,8 @@ class User extends BaseMongoModel
     {
         return [
             'role'        => 'required|string|in:client,kitchen,admin',
-            'room_number' => 'nullable|string',
-            'room_key'    => 'nullable|string',
+            'room_number' => 'nullable|int',
+            'room_key'    => 'nullable|int',
             'guest_name'  => 'nullable|string',
         ];
     }
