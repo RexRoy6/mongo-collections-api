@@ -14,6 +14,12 @@ class HotelOrderController extends Controller
     {
 
         try{
+
+            $guest = $this->validateGuestUser($request);
+    
+            if (!$guest) return response()->json(['message' => 'Unauthorized'], 403);
+
+
              // Validate hotel order request
         $validated = $request->validate([
             'guest_uuid' => 'required|uuid',
@@ -71,6 +77,18 @@ class HotelOrderController extends Controller
 }
 
 
+      private function validateGuestUser(Request $request)
+{
+    $uuid = $request->header('guest_uuid');
+
+    if (!$uuid) return null;
+
+    return User::where('role','client')
+               ->where('guest_uuid',$uuid)
+               ->where('is_occupied',true)
+               ->first();
+}
+
 
 
     public function listOrders(Request $request)
@@ -108,7 +126,7 @@ public function updateOrderStatus(Request $request)
         ], 422);
     }
 
-    $order->updateStatus('kitchen', $validated['status']);
+    $order->updateStatus('kitchen', $validated['status'],'');//el ultimo paramn es para las notas de la cocina a la orden
 
     return response()->json([
         'message' => 'Order updated',
@@ -134,9 +152,44 @@ public function cancel(Request $request)
         return response()->json(['message'=>'Order cannot be cancelled'],422);
     }
 
-    $order->updateStatus('client','cancelled');
+    $order->updateStatus('client','cancelled',$request['notes']);
 
     return response()->json(['message'=>'Order cancelled'],200);
+}
+
+public function read(Request $request)
+{
+
+      try{
+
+        $guest = $this->validateGuestUser($request);
+    
+        if (!$guest) return response()->json(['message' => 'Unauthorized'], 403);
+
+
+        // Validate hotel order request
+        $validated = $request->validate([
+            'guest_uuid' => 'required|uuid'
+        ]);
+
+        
+         $order = Order::where('created_by',$validated['guest_uuid'])
+                  ->get();
+     
+
+        if (!$order) return response()->json(['message'=>'Order not found'],404);
+
+
+        }catch (\Exception $e) {
+
+            Log::error("Error reading solictud hotel order", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+
+        return response()->json($order,200);
+
 }
 
 }

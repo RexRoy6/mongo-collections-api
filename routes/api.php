@@ -30,9 +30,12 @@ Route::get('/ticket', [readSolicitud::class, 'read']);
 Route::put('/ticket', [updateSolicitud::class, 'update']);
 
 
-
+#admin routes only
 Route::post('/admin/rooms/create', [AdminController::class, 'create']);
 Route::post('/admin/kitchenUsers/create', [AdminKitchenController::class, 'create']);
+Route::post('/admin/createMenu', [AdminController::class, 'createMenu']);
+//Route::get('/admin/menu/{menu_key}', [AdminController::class, 'getMenu']);
+
 
 #client  only
 Route::prefix('auth/client')->group(function () {
@@ -40,8 +43,11 @@ Route::prefix('auth/client')->group(function () {
     Route::put('/reset-room',      [AuthClientController::class, 'resetRoom']);
 });
 
+#orders clients
+Route::post('/hotel/orders', [HotelOrderController::class, 'create']);
+Route::get('/hotel/orders', [HotelOrderController::class, 'read']);
 // CLIENT ORDER CANCEL
-Route::put('client/orders', [HotelOrderController::class, 'cancel']);
+Route::put('/hotel/orders', [HotelOrderController::class, 'cancel']);
 
 
 
@@ -54,9 +60,6 @@ Route::put('/logout', [KitchenAuthController::class, 'logout']);
 Route::get('kitchen/orders', [HotelOrderController::class, 'listOrders']);
 Route::put('kitchen/ordersUpdate', [HotelOrderController::class, 'updateOrderStatus']);
 
-
-#orders
-Route::post('/hotel/orders/create', [HotelOrderController::class, 'create']);
 
 
 });
