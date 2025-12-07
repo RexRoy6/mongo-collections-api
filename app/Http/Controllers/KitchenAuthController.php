@@ -58,4 +58,5 @@ class KitchenAuthController extends Controller
 
         return response()->json(['message' => 'Kitchen user logged out'], 200);
     }
+
 }

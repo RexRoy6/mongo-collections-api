@@ -34,23 +34,28 @@ Route::put('/ticket', [updateSolicitud::class, 'update']);
 Route::post('/admin/rooms/create', [AdminController::class, 'create']);
 Route::post('/admin/kitchenUsers/create', [AdminKitchenController::class, 'create']);
 
-
+#client  only
 Route::prefix('auth/client')->group(function () {
     Route::post('/login', [AuthClientController::class, 'loginOrRegister']);
     Route::put('/reset-room',      [AuthClientController::class, 'resetRoom']);
-
-
 });
 
+// CLIENT ORDER CANCEL
+Route::put('client/orders', [HotelOrderController::class, 'cancel']);
+
+
+
+##kitchen only
 Route::prefix('auth/kitchen')->group(function () {
 Route::post('/login', [KitchenAuthController::class, 'login']);
 Route::put('/logout', [KitchenAuthController::class, 'logout']);
-
-
 });
 
+Route::get('kitchen/orders', [HotelOrderController::class, 'listOrders']);
+Route::put('kitchen/ordersUpdate', [HotelOrderController::class, 'updateOrderStatus']);
 
 
+#orders
 Route::post('/hotel/orders/create', [HotelOrderController::class, 'create']);
 
 
