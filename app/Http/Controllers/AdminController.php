@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 
-class AdminRoomsController extends Controller
+class AdminController extends Controller
 {
     /**
      * Create one or multiple hotel rooms.

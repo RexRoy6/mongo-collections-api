@@ -8,7 +8,7 @@ use  App\Http\Controllers\readSolicitud;
 use App\Http\Controllers\updateSolicitud;
 use App\Http\Controllers\AuthClientController;
 use App\Http\Controllers\HotelOrderController;
-use App\Http\Controllers\AdminRoomsController;
+use App\Http\Controllers\AdminController;
 
 Route::middleware('api.solicitudes')->group(function () {
 
@@ -29,7 +29,7 @@ Route::put('/ticket', [updateSolicitud::class, 'update']);
 
 
 
-Route::post('/admin/rooms/create', [AdminRoomsController::class, 'create']);
+Route::post('/admin/rooms/create', [AdminController::class, 'create']);
 
 
 Route::prefix('auth/client')->group(function () {
