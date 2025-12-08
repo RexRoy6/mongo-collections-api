@@ -74,15 +74,19 @@ jobs:
           ln -nfs ../../storage/framework storage/framework
           ln -nfs ../../storage/logs storage/logs
           
-          # Cache and optimize
+          # Switch current release FIRST
+          cd /opt/api-mongo
+          ln -nfs releases/${COMMIT_SHORT_SHA} current
+
+          # Now run the optimization IN THE NEW RELEASE
+          cd /opt/api-mongo/current
+
+          php artisan optimize:clear
           php artisan config:cache
           php artisan route:cache
           php artisan view:cache
           php artisan optimize
-          
-          # Switch current release
-          cd /opt/api-mongo
-          ln -nfs releases/${COMMIT_SHORT_SHA} current
+
           
           # Clean up old releases (keep last 5)
           ls -1dt releases/* 2>/dev/null | tail -n +6 | xargs rm -rf
