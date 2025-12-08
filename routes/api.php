@@ -44,12 +44,6 @@ Route::prefix('auth/client')->group(function () {
     Route::put('/reset-room',      [AuthClientController::class, 'resetRoom']);
 });
 
-#orders clients, se les tiene que agregar el barer toen del client
-// Route::post('/hotel/orders', [HotelOrderController::class, 'create']);
-// Route::get('/hotel/orders', [HotelOrderController::class, 'read']);
-// // CLIENT ORDER CANCEL
-// Route::put('/hotel/orders', [HotelOrderController::class, 'cancel']);
-
  // AUTHENTICATED GUEST ROUTES
     Route::middleware('auth:sanctum')->group(function () {
 
@@ -70,9 +64,12 @@ Route::post('/login', [KitchenAuthController::class, 'login']);
 Route::put('/logout', [KitchenAuthController::class, 'logout']);
 });
 
+
+ // AUTHENTICATED kitchen ROUTES
+    Route::middleware('auth:sanctum')->group(function () {
 Route::get('kitchen/orders', [HotelOrderController::class, 'listOrders']);
 Route::put('kitchen/ordersUpdate', [HotelOrderController::class, 'updateOrderStatus']);
-
+   });
 
 
 });
