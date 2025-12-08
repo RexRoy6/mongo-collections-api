@@ -27,13 +27,37 @@ class KitchenAuthController extends Controller
         }
 
         $staff->activateKitchenUser();
+        //dd($staff);
+
+
+
+
+        $authUser = \App\Models\kitchenAuthUser::updateOrCreate(
+    ['kitchenUser_uuid' => $staff->kitchenUser_uuid],
+    [
+        'name_kitchenUser'  => $staff->name_kitchenUser
+    ]
+);
+
+$token = $authUser->createToken('kitchen-token', ['kitchen:basic'])->plainTextToken;
+
+
 
         return response()->json([
-            'message'            => 'Kitchen user logged in',
-            'kitchenUser_uuid'   => $staff->kitchenUser_uuid,
-            'name'               => $staff->name_kitchenUser
-        ], 200);
+    'access_token' => $token,
+    'token_type'   => 'Bearer',
+    'expires_in'   => 86400,
+    'guest' => [
+        'message'     => 'Kitchen user logged in',
+        'kitchenUser_uuid'  => $staff->kitchenUser_uuid,
+        'name_kitchenUser'  => $staff->name_kitchenUser
+    ]
+],200);
+
     }
+
+
+
 
     public function logout(Request $request)
     {

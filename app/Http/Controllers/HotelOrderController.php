@@ -16,10 +16,6 @@ class HotelOrderController extends Controller
 
         try{
 
-           // 1) validate guest header/session first
-            $guest = $this->validateGuestUser($request);
-            if (!$guest) return response()->json(['message' => 'Unauthorized'], 403);
-
             // 2) validate incoming payload
             $validated = $request->validate([
                 'guest_uuid' => 'required|uuid',
@@ -177,10 +173,6 @@ class HotelOrderController extends Controller
 
     public function listOrders(Request $request)
 {
-    $staff = $this->validateKitchenUser($request);
-
-    if (!$staff) return response()->json(['message' => 'Unauthorized'], 403);
-
     $orders = Order::whereIn('current_status', [
         'created','pending','preparing','ready'
     ])->get();
@@ -190,9 +182,7 @@ class HotelOrderController extends Controller
 
 public function updateOrderStatus(Request $request)
 {
-    $staff = $this->validateKitchenUser($request);
 
-    if (!$staff) return response()->json(['message'=>'Unauthorized'],403);
     $validated = $request->validate([
         'status' => 'required|string|in:pending,preparing,ready,delivered,cancelled'
     ]);
@@ -221,13 +211,8 @@ public function updateOrderStatus(Request $request)
 public function cancel(Request $request)
 {
 
-    //ponerle validacion de uuid o el barer token
-    $clientUuid = $request->header('guest_uuid');
-
-    if (!$clientUuid) return response()->json(['message'=>'Unauthorized'],403);
-
     $order = Order::where('uuid',$request->uuid)
-                  ->where('created_by',$clientUuid)
+                  ->where('created_by',$request->guest_uuid)
                   ->first();
 
     if (!$order) return response()->json(['message'=>'Order not found'],404);
@@ -245,12 +230,6 @@ public function read(Request $request)
 {
 
       try{
-
-        $guest = $this->validateGuestUser($request);
-    
-        if (!$guest) return response()->json(['message' => 'Unauthorized'], 403);
-
-
         // Validate hotel order request
         $validated = $request->validate([
             'guest_uuid' => 'required|uuid'
