@@ -14,7 +14,7 @@ use App\Http\Controllers\KitchenAuthController;
 use App\Http\Controllers\MenuController;
 
 Route::middleware('api.solicitudes')->group(function () {
-
+//basi operations
 //ruta de cracion:
 Route::post('/ticket', [createSolicitud::class, 'store']);
 
@@ -30,7 +30,7 @@ Route::get('/ticket', [readSolicitud::class, 'read']);
 //ruta para modificar el status history:
 Route::put('/ticket', [updateSolicitud::class, 'update']);
 
-
+//basi operations
 #admin routes only
 Route::post('/admin/rooms/create', [AdminController::class, 'create']);
 Route::post('/admin/kitchenUsers/create', [AdminKitchenController::class, 'create']);
