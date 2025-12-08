@@ -16,10 +16,6 @@ class HotelOrderController extends Controller
 
         try{
 
-           // 1) validate guest header/session first
-            $guest = $this->validateGuestUser($request);
-            if (!$guest) return response()->json(['message' => 'Unauthorized'], 403);
-
             // 2) validate incoming payload
             $validated = $request->validate([
                 'guest_uuid' => 'required|uuid',
@@ -221,13 +217,8 @@ public function updateOrderStatus(Request $request)
 public function cancel(Request $request)
 {
 
-    //ponerle validacion de uuid o el barer token
-    $clientUuid = $request->header('guest_uuid');
-
-    if (!$clientUuid) return response()->json(['message'=>'Unauthorized'],403);
-
     $order = Order::where('uuid',$request->uuid)
-                  ->where('created_by',$clientUuid)
+                  ->where('created_by',$request->guest_uuid)
                   ->first();
 
     if (!$order) return response()->json(['message'=>'Order not found'],404);
@@ -245,12 +236,6 @@ public function read(Request $request)
 {
 
       try{
-
-        $guest = $this->validateGuestUser($request);
-    
-        if (!$guest) return response()->json(['message' => 'Unauthorized'], 403);
-
-
         // Validate hotel order request
         $validated = $request->validate([
             'guest_uuid' => 'required|uuid'
