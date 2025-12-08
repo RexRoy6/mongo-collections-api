@@ -80,7 +80,17 @@ class AuthClientController extends Controller
        // dd($room);
 
           //generarle su bearer token nene
-        $token = $room->createToken('guest-token', ['guest:basic'])->plainTextToken;
+        // $token = $room->createToken('guest-token', ['guest:basic'])->plainTextToken;
+        // create or update SQL auth entry
+$authUser = \App\Models\GuestAuthUser::updateOrCreate(
+    ['guest_uuid' => $room->guest_uuid],
+    [
+        'guest_name'  => $room->guest_name,
+        'room_number' => $room->room_number,
+    ]
+);
+
+$token = $authUser->createToken('guest-token', ['guest:basic'])->plainTextToken;
 
 
         return response()->json([
