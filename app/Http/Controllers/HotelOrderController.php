@@ -173,10 +173,6 @@ class HotelOrderController extends Controller
 
     public function listOrders(Request $request)
 {
-    $staff = $this->validateKitchenUser($request);
-
-    if (!$staff) return response()->json(['message' => 'Unauthorized'], 403);
-
     $orders = Order::whereIn('current_status', [
         'created','pending','preparing','ready'
     ])->get();
@@ -186,9 +182,7 @@ class HotelOrderController extends Controller
 
 public function updateOrderStatus(Request $request)
 {
-    $staff = $this->validateKitchenUser($request);
 
-    if (!$staff) return response()->json(['message'=>'Unauthorized'],403);
     $validated = $request->validate([
         'status' => 'required|string|in:pending,preparing,ready,delivered,cancelled'
     ]);
