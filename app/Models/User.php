@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use App\Models\BaseMongoModel;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends BaseMongoModel
 {
+    use HasApiTokens;
     protected $collection = 'users';
 
    

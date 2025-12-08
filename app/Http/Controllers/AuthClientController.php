@@ -77,13 +77,35 @@ class AuthClientController extends Controller
         }
 
         $room->assignGuest($validated['guest_name']);
+       // dd($room);
+
+          //generarle su bearer token nene
+        // $token = $room->createToken('guest-token', ['guest:basic'])->plainTextToken;
+        // create or update SQL auth entry
+$authUser = \App\Models\GuestAuthUser::updateOrCreate(
+    ['guest_uuid' => $room->guest_uuid],
+    [
+        'guest_name'  => $room->guest_name,
+        'room_number' => $room->room_number,
+    ]
+);
+
+$token = $authUser->createToken('guest-token', ['guest:basic'])->plainTextToken;
+
 
         return response()->json([
-            'message'     => 'Guest registered',
-            'guest_uuid'  => $room->guest_uuid,
-            'guest_name'  => $room->guest_name,
-            'room_number' => $room->room_number
-        ], 200);
+    'access_token' => $token,
+    'token_type'   => 'Bearer',
+    'expires_in'   => 86400,
+    'guest' => [
+        'message'     => 'Guest registered',
+        'guest_uuid'  => $room->guest_uuid,
+        'guest_name'  => $room->guest_name,
+        'room_number' => $room->room_number
+    ]
+],200);
+
+
     }
 }
 
