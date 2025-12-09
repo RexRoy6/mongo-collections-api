@@ -9,7 +9,8 @@ return [
     'allowed_origins' => [
         'http://localhost:5173',
         'https://hospi-host.com',
-        'https://www.hospi-host.com'
+        'https://www.hospi-host.com',
+        'https://www.client.hospi-host.com'
     ],
 
     'allowed_origins_patterns' => [],
