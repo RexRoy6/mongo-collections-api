@@ -14,7 +14,11 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
 
         // GLOBAL middleware (runs for every request)
-        $middleware->append(\App\Http\Middleware\HandleCors::class);
+        //$middleware->append(\App\Http\Middleware\HandleCors::class);
+
+
+          // Use Laravel's built-in CORS middleware
+        $middleware->append(\Illuminate\Http\Middleware\HandleCors::class);
 
         //
         $middleware->api(append: [
