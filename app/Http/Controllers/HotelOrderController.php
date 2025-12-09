@@ -184,7 +184,8 @@ public function updateOrderStatus(Request $request)
 {
 
     $validated = $request->validate([
-        'status' => 'required|string|in:pending,preparing,ready,delivered,cancelled'
+        'status' => 'required|string|in:pending,preparing,ready,delivered,cancelled',
+        'notes' => 'nullable|string'
     ]);
 
     $order = Order::where('uuid', $request->uuid)->first();
@@ -200,7 +201,7 @@ public function updateOrderStatus(Request $request)
         ], 422);
     }
 
-    $order->updateStatus('kitchen', $validated['status'],'');//el ultimo paramn es para las notas de la cocina a la orden
+    $order->updateStatus('kitchen', $validated['status'],$validated['notes']);
 
     return response()->json([
         'message' => 'Order updated',
