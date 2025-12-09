@@ -104,7 +104,6 @@ class HotelOrderController extends Controller
                     'image' => $menuItem['image'] ?? null
                 ];
             }
-
             // 8) build final solicitud payload (adds total + items + menu_key + payment placeholders)
             $finalSolicitud = $validated['solicitud'];
             $finalSolicitud['items'] = $orderItems;
@@ -112,6 +111,7 @@ class HotelOrderController extends Controller
             $finalSolicitud['total'] = $totalCents / 100;
             $finalSolicitud['total_cents'] = $totalCents;
             $finalSolicitud['currency'] = $validated['solicitud']['currency'];
+            $finalSolicitud['guest_room'] = $guest->room_number;
             // optionally add payment method placeholder:
             // $finalSolicitud['payment_method'] = $validated['solicitud']['payment_method']
            
