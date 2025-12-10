@@ -25,12 +25,18 @@ class KitchenAuthController extends Controller
         if ($staff->kitchenUser_key !== $validated['kitchenUser_key']) {
             return response()->json(['message' => 'Invalid key'], 403);
         }
+          // If already logged in return existing kitchen uuid
+    if ($staff->is_active && $staff->uuid) {
+        return response()->json([
+            'message'     => 'kitchen staff already logged in',
+            'kitchenUser_uuid'  => $staff->uuid
+        ], 422);
+    }
+
+
 
         $staff->activateKitchenUser();
         //dd($staff);
-
-
-
 
         $authUser = \App\Models\kitchenAuthUser::updateOrCreate(
     ['kitchenUser_uuid' => $staff->kitchenUser_uuid],
@@ -72,6 +78,9 @@ $token = $authUser->createToken('kitchen-token', ['kitchen:basic'])->plainTextTo
 
         if (!$staff) {
             return response()->json(['message' => 'Kitchen user not found'], 404);
+        }elseif($staff->kitchenUser_uuid == null || $staff->is_active = false){
+            return response()->json(['message' => 'Kitchen user already loged out'], 422);
+
         }
 
         if ($staff->kitchenUser_key !== $validated['kitchenUser_key']) {
