@@ -8,6 +8,7 @@ use App\Http\Controllers\createSolicitud;
 use Illuminate\Support\Facades\Log;
 use App\Models\Order;
 use App\Models\Menu;
+use Illuminate\Support\Carbon;
 
 class HotelOrderController extends Controller
 {
@@ -173,9 +174,17 @@ class HotelOrderController extends Controller
 
     public function listOrders(Request $request)
 {
-    $orders = Order::whereIn('current_status', [
-        'created','pending','preparing','ready','delivered','cancelled'
-    ])->get();
+ 
+$orders = Order::whereIn('current_status', [
+    'created', 'pending', 'preparing', 'ready', 'delivered', 'cancelled'
+])
+->whereBetween('created_at', [
+     Carbon::today()->startOfDay(),
+    Carbon::today()->endOfDay()
+  
+])
+->orderBy('created_at', 'desc')
+->get();
 
     return response()->json($orders, 200);
 }

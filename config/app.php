@@ -65,7 +65,7 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => 'America/Ciudad_Juarez',//era UTC
 
     /*
     |--------------------------------------------------------------------------
