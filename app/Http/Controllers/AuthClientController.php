@@ -26,7 +26,7 @@ class AuthClientController extends Controller
             return response()->json(['message' => 'Room not found'], 404);
         
         }elseif($room->guest_name == null || $room->is_occupied = false){
-            return response()->json(['message' => 'Room has no client/user assigned'], 200);
+            return response()->json(['message' => 'Room has no client/user assigned'], 422);
 
         }
 
@@ -62,9 +62,7 @@ class AuthClientController extends Controller
         return response()->json([
             'message'     => 'Room already occupied',
             'guest_uuid'  => $room->guest_uuid
-            //'guest_name'  => $room->guest_name,
-            //'room_number' => $room->room_number
-        ], 200);
+        ], 422);
     }
 
     // If room is empty → register guest
@@ -77,7 +75,6 @@ class AuthClientController extends Controller
         }
 
         $room->assignGuest($validated['guest_name']);
-       // dd($room);
 
           //generarle su bearer token nene
 $authUser = \App\Models\GuestAuthUser::updateOrCreate(
