@@ -91,7 +91,7 @@ $token = $authUser->createToken('guest-token', ['guest:basic'])->plainTextToken;
         return response()->json([
     'access_token' => $token,
     'token_type'   => 'Bearer',
-    'expires_in'   => 86400,
+    'expires_in'   => 14400,
     'guest' => [
         'message'     => 'Guest registered',
         'guest_uuid'  => $room->guest_uuid,

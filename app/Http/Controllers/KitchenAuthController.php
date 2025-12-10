@@ -52,7 +52,7 @@ $token = $authUser->createToken('kitchen-token', ['kitchen:basic'])->plainTextTo
         return response()->json([
     'access_token' => $token,
     'token_type'   => 'Bearer',
-    'expires_in'   => 86400,
+    'expires_in'   => 43200,
     'guest' => [
         'message'     => 'Kitchen user logged in',
         'kitchenUser_uuid'  => $staff->kitchenUser_uuid,
