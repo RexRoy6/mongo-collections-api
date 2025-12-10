@@ -12,6 +12,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminKitchenController;
 use App\Http\Controllers\KitchenAuthController;
 use App\Http\Controllers\MenuController;
+use App\Http\Controllers\BusinessController;
 
 Route::middleware('api.solicitudes')->group(function () {
 //basi operations
@@ -36,6 +37,9 @@ Route::post('/admin/rooms/create', [AdminController::class, 'create']);
 Route::post('/admin/kitchenUsers/create', [AdminKitchenController::class, 'create']);
 Route::post('/admin/createMenu', [AdminController::class, 'createMenu']);
 //Route::get('/admin/menu/{menu_key}', [AdminController::class, 'getMenu']);
+#route to create business
+Route::post('/admin/business', [BusinessController::class, 'createBusiness']);
+
 
 
 #client  only

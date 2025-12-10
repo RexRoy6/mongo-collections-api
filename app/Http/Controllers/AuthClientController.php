@@ -37,6 +37,8 @@ class AuthClientController extends Controller
 
     public function loginOrRegister(Request $request)
 {
+
+    //aqui agregar algo que valide de que negocio pertenece este log in
     $validated = $request->validate([
         'room_number' => 'required|int',
         'room_key'    => 'required|int',
