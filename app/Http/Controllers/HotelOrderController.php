@@ -174,7 +174,7 @@ class HotelOrderController extends Controller
     public function listOrders(Request $request)
 {
     $orders = Order::whereIn('current_status', [
-        'created','pending','preparing','ready'
+        'created','pending','preparing','ready','delivered','cancelled'
     ])->get();
 
     return response()->json($orders, 200);
