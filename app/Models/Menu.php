@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use App\Models\BaseMongoModel;
+use App\Models\Traits\BelongsToBusiness;
 
 class Menu extends BaseMongoModel
 {
+    use BelongsToBusiness; 
+    
     protected $collection = 'menus';
 
     protected $fillable = [

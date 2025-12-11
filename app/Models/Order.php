@@ -4,12 +4,13 @@ namespace App\Models;
 
 use App\Models\BaseMongoModel;
 use App\Models\Traits\HasStatusHistory;
+use App\Models\Traits\BelongsToBusiness;
 
 
 
 class Order extends BaseMongoModel
 {
-    use HasStatusHistory;
+    use HasStatusHistory,BelongsToBusiness;
 
     protected $collection = 'orders';
 
