@@ -59,6 +59,34 @@ class BusinessController extends Controller
         ], 201);
     }
 
-    //falta agregar put /updateBusiness/listBusinesses
+    //falta agregar put /updateBusiness/listBusinesse
+
+// In BusinessController
+public function identify(Request $request)
+{
+    $validated = $request->validate([
+        'business_key' => 'required|string',  // or business_code
+    ]);
+
+    $business = Business::where('business_key', $validated['business_key'])
+        ->orWhere('business_code', $validated['business_code'] ?? null)
+        ->active()  // Only active businesses
+        ->first();
+
+    if (!$business) {
+        return response()->json([
+            'error' => 'Business not found or inactive'
+        ], 404);
+    }
+
+    return response()->json([
+        'business' => [
+            'name' => $business->business_info,
+            'key' => $business->business_key,
+            'code' => $business->business_code,
+            'config' => $business->config,
+        ]
+    ]);
+}
 
 }

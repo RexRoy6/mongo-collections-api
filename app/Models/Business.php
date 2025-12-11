@@ -93,4 +93,22 @@ class Business extends BaseMongoModel
             'created_at' => $this->created_at,
         ];
     }
+
+      /**
+     * Get default config values
+     */
+    public function getConfigAttribute($value)
+    {
+        $defaults = [
+            'timezone' => 'UTC',
+            'currency' => 'mxn',
+            'language' => 'en',
+            'max_order_items' => 10,
+            'order_timeout_minutes' => 30,
+        ];
+
+        $config = $value ? json_decode($value, true) : [];
+        
+        return array_merge($defaults, $config);
+    }
 }
