@@ -14,6 +14,7 @@ class Order extends BaseMongoModel
     protected $collection = 'orders';
 
     protected $fillable = [
+        'business_uuid',
         'channel',
         'created_by',
         'solicitud',

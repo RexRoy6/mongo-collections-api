@@ -12,6 +12,7 @@ class User extends BaseMongoModel
 
    
     protected $fillable = [
+        'business_uuid',
         'role',
 
         // ROOM USERS

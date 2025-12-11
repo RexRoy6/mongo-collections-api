@@ -11,6 +11,7 @@ class GuestAuthUser extends Authenticatable
     use HasApiTokens, HasFactory;
 
     protected $fillable = [
+        'business_uuid',
         'guest_uuid',
         'guest_name',
         'room_number',
