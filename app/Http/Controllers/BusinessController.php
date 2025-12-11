@@ -89,4 +89,77 @@ public function identify(Request $request)
     ]);
 }
 
+   /**
+     * Update business information
+     */
+    public function updateBusiness(Request $request, $businessUuid)
+    {
+        $business = Business::where('uuid', $businessUuid)->firstOrFail();
+
+        $validated = $request->validate([
+            'business_info' => 'nullable|string',
+            'is_active'     => 'boolean',
+            'config'        => 'nullable|array',
+        ]);
+
+        // Don't allow changing business_key via update
+        // Create a new business if key needs to change
+
+        $business->update($validated);
+
+        return response()->json([
+            'message' => 'Business updated successfully',
+            'business' => $business
+        ], 200);
+    }
+
+        /**
+     * List all businesses (for admin)
+     */
+    public function listBusinesses(Request $request)
+    {
+        $perPage = $request->query('per_page', 20);
+        
+        $businesses = Business::paginate($perPage);
+
+        return response()->json([
+            'businesses' => $businesses,
+            'meta' => [
+                'total' => $businesses->total(),
+                'per_page' => $businesses->perPage(),
+                'current_page' => $businesses->currentPage(),
+                'last_page' => $businesses->lastPage(),
+            ]
+        ], 200);
+    }
+
+    /**
+     * Get business details
+     */
+    public function getBusiness($businessUuid)
+    {
+        $business = Business::where('uuid', $businessUuid)->firstOrFail();
+
+        return response()->json([
+            'business' => $business
+        ], 200);
+    }
+
+    /**
+     * Toggle business active status
+     */
+    public function toggleBusinessStatus($businessUuid)
+    {
+        $business = Business::where('uuid', $businessUuid)->firstOrFail();
+
+        $business->update([
+            'is_active' => !$business->is_active
+        ]);
+
+        return response()->json([
+            'message' => 'Business status updated',
+            'business' => $business
+        ], 200);
+    }
+
 }
