@@ -14,7 +14,7 @@ class kitchenAuthUser extends Authenticatable
         'kitchenUser_uuid',
         'name_kitchenUser',
         'business_uuid',     // Add this
-        'business_key'      // Add this for easy reference
+        'business_key', // Keep this for convenience
     ];
 
     protected $hidden = [
@@ -25,5 +25,11 @@ class kitchenAuthUser extends Authenticatable
     public function business()
     {
         return $this->belongsTo(Business::class, 'business_uuid', 'uuid');
+    }
+
+     // Add a scope for business filtering
+    public function scopeForBusiness($query, $businessUuid)
+    {
+        return $query->where('business_uuid', $businessUuid);
     }
 }

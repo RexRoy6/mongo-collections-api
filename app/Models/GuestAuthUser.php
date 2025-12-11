@@ -12,6 +12,7 @@ class GuestAuthUser extends Authenticatable
 
     protected $fillable = [
         'business_uuid',
+        'business_key', // Keep this for convenience
         'guest_uuid',
         'guest_name',
         'room_number',
@@ -20,4 +21,16 @@ class GuestAuthUser extends Authenticatable
     protected $hidden = [
         'remember_token',
     ];
+
+     // Optional: Add relationship to business
+    public function business()
+    {
+        return $this->belongsTo(Business::class, 'business_uuid', 'uuid');
+    }
+
+    // Add a scope for business filtering
+    public function scopeForBusiness($query, $businessUuid)
+    {
+        return $query->where('business_uuid', $businessUuid);
+    }
 }
