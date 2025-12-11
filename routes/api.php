@@ -15,65 +15,89 @@ use App\Http\Controllers\MenuController;
 use App\Http\Controllers\BusinessController;
 
 Route::middleware('api.solicitudes')->group(function () {
-//basi operations
-//ruta de cracion:
-Route::post('/ticket', [createSolicitud::class, 'store']);
 
+// ========== PUBLIC ROUTES (No authentication needed) ==========
 
+// Business identification - ENTRY POINT for Vue.js
+Route::post('/identify-business', [BusinessIdentificationController::class, 'identify']);
 
-//rutas metodo delete
-//esta ruta es concuidado , destuye un registro por su uuid, no usar mas que para limpiar
-Route::delete('/ticket/destroy', [deleteSolicitud::class, 'destroy']);
+// Business context validation
+Route::get('/validate-business', [BusinessIdentificationController::class, 'validateContext']);
 
-//ruta para el metodo get:
-Route::get('/ticket', [readSolicitud::class, 'read']);
-
-//ruta para modificar el status history:
-Route::put('/ticket', [updateSolicitud::class, 'update']);
-
-//basi operations
-#admin routes only
-Route::post('/admin/rooms/create', [AdminController::class, 'create']);
-Route::post('/admin/kitchenUsers/create', [AdminKitchenController::class, 'create']);
-Route::post('/admin/createMenu', [AdminController::class, 'createMenu']);
-//Route::get('/admin/menu/{menu_key}', [AdminController::class, 'getMenu']);
-#route to create business
-Route::post('/admin/business', [BusinessController::class, 'createBusiness']);
-
-
-
-#client  only
-Route::prefix('auth/client')->group(function () {
-    Route::post('/login', [AuthClientController::class, 'loginOrRegister']);
-    Route::put('/reset-room',      [AuthClientController::class, 'resetRoom']);
+// Health check
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'healthy',
+        'timestamp' => now()->toIso8601String(),
+        'version' => '1.0.0'
+    ]);
 });
 
- // AUTHENTICATED GUEST ROUTES
-    Route::middleware('auth:sanctum')->group(function () {
+// ========== ADMIN BUSINESS MANAGEMENT ==========
+// These routes don't need business context
+Route::prefix('admin')->group(function () {
+    Route::post('/business', [BusinessController::class, 'createBusiness']);
+    Route::get('/businesses', [BusinessController::class, 'listBusinesses']);
+    Route::get('/business/{businessUuid}', [BusinessController::class, 'getBusiness']);
+    Route::put('/business/{businessUuid}', [BusinessController::class, 'updateBusiness']);
+    Route::patch('/business/{businessUuid}/toggle-status', [BusinessController::class, 'toggleBusinessStatus']);
+    
+    // Other admin routes...
+});
 
-        Route::post('/hotel/orders', [HotelOrderController::class, 'create']);
-        Route::get('/hotel/orders', [HotelOrderController::class, 'read']);
-        Route::put('/hotel/orders', [HotelOrderController::class, 'cancel']);
-
+// ========== BUSINESS-CONTEXT ROUTES ==========
+// These routes require business identification
+Route::middleware(['require.business'])->group(function () {
+    
+    // Public business info
+    Route::get('/business-info', function (Request $request) {
+        $business = $request->get('current_business');
+        return response()->json([
+            'business' => $business->getPublicInfo()
+        ]);
     });
-
-// Client-facing menu endpoints
-Route::get('/hotel/menus', [MenuController::class, 'getMenuByKey']);
-
-
-
-##kitchen only
-Route::prefix('auth/kitchen')->group(function () {
-Route::post('/login', [KitchenAuthController::class, 'login']);
-Route::put('/logout', [KitchenAuthController::class, 'logout']);
+    
+    // Business-specific menu routes
+    Route::get('/menus', [MenuController::class, 'getMenuByKey']);
+    
+    // Business-specific authentication
+    Route::prefix('auth')->group(function () {
+        // Client auth for this business
+        Route::prefix('client')->group(function () {
+            Route::post('/login', [AuthClientController::class, 'loginOrRegister']);
+            Route::put('/reset-room', [AuthClientController::class, 'resetRoom']);
+        });
+        
+        // Kitchen auth for this business
+        Route::prefix('kitchen')->group(function () {
+            Route::post('/login', [KitchenAuthController::class, 'login']);
+            Route::put('/logout', [KitchenAuthController::class, 'logout']);
+        });
+    });
+    
+    // Authenticated routes with business context
+    Route::middleware(['auth:sanctum'])->group(function () {
+        // Orders for current business
+        Route::prefix('orders')->group(function () {
+            Route::post('/', [HotelOrderController::class, 'create']);
+            Route::get('/', [HotelOrderController::class, 'read']);
+            Route::put('/cancel', [HotelOrderController::class, 'cancel']);
+            
+            // Kitchen routes for current business
+            Route::get('/kitchen', [HotelOrderController::class, 'listOrders']);
+            Route::put('/kitchen/update', [HotelOrderController::class, 'updateOrderStatus']);
+        });
+        
+        // Add other business-scoped routes here...
+    });
 });
 
-
- // AUTHENTICATED kitchen ROUTES
-    Route::middleware('auth:sanctum')->group(function () {
-Route::get('kitchen/orders', [HotelOrderController::class, 'listOrders']);
-Route::put('kitchen/ordersUpdate', [HotelOrderController::class, 'updateOrderStatus']);
-   });
-
-
+// ========== LEGACY ROUTES (For backward compatibility) ==========
+// Keep your existing routes but wrap them in business context
+Route::middleware(['require.business'])->group(function () {
+    Route::post('/ticket', [createSolicitud::class, 'store']);
+    Route::delete('/ticket/destroy', [deleteSolicitud::class, 'destroy']);
+    Route::get('/ticket', [readSolicitud::class, 'read']);
+    Route::put('/ticket', [updateSolicitud::class, 'update']);
+});
 });
