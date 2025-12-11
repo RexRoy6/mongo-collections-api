@@ -13,18 +13,11 @@ use App\Http\Controllers\AdminKitchenController;
 use App\Http\Controllers\KitchenAuthController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\BusinessController;
+use App\Http\Controllers\BusinessIdentificationController; // Add this!
 
-Route::middleware('api.solicitudes')->group(function () {
+// ========== PUBLIC ROUTES (No middleware, No business context needed) ==========
 
-// ========== PUBLIC ROUTES (No authentication needed) ==========
-
-// Business identification - ENTRY POINT for Vue.js
-Route::post('/identify-business', [BusinessIdentificationController::class, 'identify']);
-
-// Business context validation
-Route::get('/validate-business', [BusinessIdentificationController::class, 'validateContext']);
-
-// Health check
+// Health check - completely public
 Route::get('/health', function () {
     return response()->json([
         'status' => 'healthy',
@@ -33,9 +26,15 @@ Route::get('/health', function () {
     ]);
 });
 
+// Business identification - ENTRY POINT for Vue.js (MUST be public)
+Route::post('/identify-business', [BusinessIdentificationController::class, 'identify']);
+
+// Business context validation (optional, for frontend to verify)
+Route::get('/validate-business', [BusinessIdentificationController::class, 'validateContext']);
+
 // ========== ADMIN BUSINESS MANAGEMENT ==========
-// These routes don't need business context
-Route::prefix('admin')->group(function () {
+// These routes don't need business context but might need authentication
+Route::prefix('admin')->middleware(['api.solicitudes'])->group(function () {
     Route::post('/business', [BusinessController::class, 'createBusiness']);
     Route::get('/businesses', [BusinessController::class, 'listBusinesses']);
     Route::get('/business/{businessUuid}', [BusinessController::class, 'getBusiness']);
@@ -47,9 +46,10 @@ Route::prefix('admin')->group(function () {
 
 // ========== BUSINESS-CONTEXT ROUTES ==========
 // These routes require business identification
-Route::middleware(['require.business'])->group(function () {
+// They go through: api.solicitudes → detect.business → require.business
+Route::middleware(['api.solicitudes', 'require.business'])->group(function () {
     
-    // Public business info
+    // Public business info (after business is identified)
     Route::get('/business-info', function (Request $request) {
         $business = $request->get('current_business');
         return response()->json([
@@ -90,14 +90,13 @@ Route::middleware(['require.business'])->group(function () {
         
         // Add other business-scoped routes here...
     });
-});
 
-// ========== LEGACY ROUTES (For backward compatibility) ==========
-// Keep your existing routes but wrap them in business context
-Route::middleware(['require.business'])->group(function () {
+    // ========== LEGACY ROUTES (For backward compatibility) ==========
+    // Keep your existing routes but wrap them in business context
     Route::post('/ticket', [createSolicitud::class, 'store']);
     Route::delete('/ticket/destroy', [deleteSolicitud::class, 'destroy']);
     Route::get('/ticket', [readSolicitud::class, 'read']);
     Route::put('/ticket', [updateSolicitud::class, 'update']);
-});
+    
+    // Other legacy routes if any...
 });
