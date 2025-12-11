@@ -4,10 +4,69 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+use App\Models\Business;
 
 class AuthClientController extends Controller
 {
-    /**
+    public function loginOrRegister(Request $request)
+    {
+        // Get business from middleware
+        $business = $request->get('current_business');
+        
+        if (!$business) {
+            return response()->json([
+                'error' => 'business_context_required',
+                'message' => 'Business context is required for authentication'
+            ], 400);
+        }
+
+        $validated = $request->validate([
+            'room_number' => 'required|integer',
+            'room_key' => 'required|integer',
+            'guest_name' => 'required|string',
+        ]);
+
+        // Find user within THIS SPECIFIC BUSINESS
+        $user = User::where('business_uuid', $business->uuid)
+            ->where('role', 'client')
+            ->where('room_number', $validated['room_number'])
+            ->where('room_key', $validated['room_key'])
+            ->first();
+        
+        if (!$user) {
+            // Create new user FOR THIS BUSINESS
+            $user = User::create([
+                'business_uuid' => $business->uuid, // Critical: business association
+                'role' => 'client',
+                ...$validated
+            ]);
+        }
+        
+        // Assign guest to room
+        $user->assignGuest($validated['guest_name']);
+        
+        // Create token with business scope
+        $token = $user->createToken('client-token', [
+            'client:basic',
+            'business:' . $business->business_key
+        ])->plainTextToken;
+        
+        return response()->json([
+            'access_token' => $token,
+            'token_type' => 'Bearer',
+            'expires_in' => 86400,
+            'business' => $business->getPublicInfo(),
+            'guest' => [
+                'name' => $user->guest_name,
+                'room' => $user->room_number,
+                'uuid' => $user->guest_uuid
+            ]
+        ]);
+    }
+
+
+     /**
      * 3) RESET ROOM
      */
     public function resetRoom(Request $request)
@@ -34,76 +93,5 @@ class AuthClientController extends Controller
 
         return response()->json(['message' => 'Room reset successfully'], 200);
     }
-
-    public function loginOrRegister(Request $request)
-{
-
-    //aqui agregar algo que valide de que negocio pertenece este log in
-    $validated = $request->validate([
-        'room_number' => 'required|int',
-        'room_key'    => 'required|int',
-        'guest_name'  => 'nullable|string' // only needed if registering
-    ]);
-
-    // Find room
-    $room = User::where('role', 'client')
-        ->where('room_number', $validated['room_number'])
-        ->first();
-
-    if (!$room) {
-        return response()->json(['message' => 'Room not found'], 404);
-    }
-
-    // Check key
-    if ($room->room_key !== $validated['room_key']) {
-        return response()->json(['message' => 'Invalid room key'], 403);
-    }
-
-    // If already occupied → return existing guest
-    if ($room->is_occupied && $room->guest_uuid) {
-        return response()->json([
-            'message'     => 'Room already occupied',
-            'guest_uuid'  => $room->guest_uuid
-        ], 422);
-    }
-
-    // If room is empty → register guest
-    if (!$room->is_occupied) {
-
-        if (!$validated['guest_name']) {
-            return response()->json([
-                'message' => 'guest_name is required for new guest'
-            ], 422);
-        }
-
-        $room->assignGuest($validated['guest_name']);
-
-          //generarle su bearer token nene
-$authUser = \App\Models\GuestAuthUser::updateOrCreate(
-    ['guest_uuid' => $room->guest_uuid],
-    [
-        'guest_name'  => $room->guest_name,
-        'room_number' => $room->room_number,
-    ]
-);
-
-$token = $authUser->createToken('guest-token', ['guest:basic'])->plainTextToken;
-
-
-        return response()->json([
-    'access_token' => $token,
-    'token_type'   => 'Bearer',
-    'expires_in'   => 14400,
-    'guest' => [
-        'message'     => 'Guest registered',
-        'guest_uuid'  => $room->guest_uuid,
-        'guest_name'  => $room->guest_name,
-        'room_number' => $room->room_number
-    ]
-],200);
-
-
-    }
-}
-
+    
 }
