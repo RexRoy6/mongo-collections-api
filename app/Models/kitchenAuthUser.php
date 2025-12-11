@@ -12,10 +12,18 @@ class kitchenAuthUser extends Authenticatable
 
     protected $fillable = [
         'kitchenUser_uuid',
-        'name_kitchenUser'
+        'name_kitchenUser',
+        'business_uuid',     // Add this
+        'business_key'      // Add this for easy reference
     ];
 
     protected $hidden = [
         'remember_token',
     ];
+
+    // Optional: Add relationship to business
+    public function business()
+    {
+        return $this->belongsTo(Business::class, 'business_uuid', 'uuid');
+    }
 }
