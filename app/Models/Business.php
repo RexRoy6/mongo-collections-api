@@ -102,9 +102,7 @@ class Business extends BaseMongoModel
         $defaults = [
             'timezone' => 'UTC',
             'currency' => 'mxn',
-            'language' => 'en',
-            'max_order_items' => 10,
-            'order_timeout_minutes' => 30,
+            'language' => 'en'
         ];
 
         $config = $value ? json_decode($value, true) : [];

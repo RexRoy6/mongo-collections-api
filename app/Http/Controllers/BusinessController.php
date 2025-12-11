@@ -14,6 +14,7 @@ class BusinessController extends Controller
      */
     public function createBusiness(Request $request)
     {
+
         $validated = $request->validate([
             'business_key'  => 'required|string',
             'business_info' => 'nullable|string',
@@ -40,6 +41,7 @@ class BusinessController extends Controller
                 'welcome_message' => "Welcome to {$validated['business_info']}",
             ];
         }
+        //dd($validated);
 
         // Create business - code will be auto-generated
         $business = Business::create($validated);

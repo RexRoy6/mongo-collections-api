@@ -11,48 +11,31 @@ class DetectBusiness
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // Try multiple ways to identify the business
+        // Try to find business identifier
         $businessIdentifier = $this->getBusinessIdentifier($request);
         
+        // If no identifier provided, just continue
         if (!$businessIdentifier) {
-            // No business identifier provided, continue without business context
-            // (for routes that don't need it, like admin/business creation)
             return $next($request);
         }
 
-        // Find the business
+        // Try to find the business
         $business = $this->findBusiness($businessIdentifier);
         
-        if (!$business) {
-            return response()->json([
-                'error' => 'Business not found',
-                'message' => 'The specified business does not exist'
-            ], 404);
+        // If business found and active, set context
+        if ($business && $business->is_active) {
+            $request->merge(['current_business' => $business]);
+            app()->instance('current_business', $business);
         }
-
-        if (!$business->is_active) {
-            return response()->json([
-                'error' => 'Business inactive',
-                'message' => 'This business account is currently inactive'
-            ], 403);
-        }
-
-        // Store business in request and app container
-        $request->merge(['current_business' => $business]);
-        app()->instance('current_business', $business);
-
+        
+        // IMPORTANT: Continue even if business not found
+        // Some routes (like /admin/business) don't need business context
         return $next($request);
     }
 
     private function getBusinessIdentifier(Request $request)
     {
         // Check in this order:
-        // 1. X-Business-Code header
-        // 2. X-Business-Key header  
-        // 3. business_code query parameter
-        // 4. business_key query parameter
-        // 5. Subdomain (if using subdomains)
-
         if ($request->hasHeader('X-Business-Code')) {
             return ['type' => 'code', 'value' => $request->header('X-Business-Code')];
         }
@@ -69,7 +52,7 @@ class DetectBusiness
             return ['type' => 'key', 'value' => $request->query('business_key')];
         }
 
-        // If using subdomains (e.g., cafe.lunas.example.com)
+        // If using subdomains
         $host = $request->getHost();
         $subdomain = explode('.', $host)[0];
         
