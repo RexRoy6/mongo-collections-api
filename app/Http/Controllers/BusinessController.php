@@ -115,7 +115,7 @@ public function identify(Request $request)
 
         $validated = $request->validate([
             'business_info' => 'nullable|string',
-            'is_active'     => 'boolean',
+            //'is_active'     => 'boolean',
             'config'        => 'nullable|array',
         ]);
 

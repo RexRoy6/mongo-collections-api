@@ -14,18 +14,23 @@ class AdminController extends Controller
      */
     public function create(Request $request)
     {
+        //dd('ola');aqui debe de tener validacion por si falta parametros regrese error bad request
         $validated = $request->validate([
             'rooms' => 'required|array|min:1',
             'rooms.*.room_number' => 'required|int',
             'rooms.*.room_key'    => 'required|int',
+            'business_uuid' => 'required|string',
         ]);
+
+        //dd($validated);
 
         $createdRooms = [];
 
         foreach ($validated['rooms'] as $roomData) {
 
             // Check if room already exists
-            $exists = User::where('role', 'client')
+            $exists = User::where('business_uuid', $validated['business_uuid'])
+                ->where('role', 'client')
                 ->where('room_number', $roomData['room_number'])
                 ->first();
 
@@ -40,6 +45,7 @@ class AdminController extends Controller
 
             // Create room
             $room = new User([
+                'business_uuid' => $validated['business_uuid'],
                 'role'        => 'client',
                 'room_number' => $roomData['room_number'],
                 'room_key'    => $roomData['room_key'],
