@@ -11,7 +11,9 @@ class AuthClientController extends Controller
 {
     public function loginOrRegister(Request $request)
     {
-        // Get business from middleware
+
+        try{
+            // Get business from middleware
         $business = $request->get('current_business');
         
         if (!$business) {
@@ -33,6 +35,8 @@ class AuthClientController extends Controller
             ->where('room_number', $validated['room_number'])
             ->where('room_key', $validated['room_key'])
             ->first();
+
+            //dd($user);
         
         if (!$user) {
             // Create new user FOR THIS BUSINESS
@@ -69,6 +73,14 @@ class AuthClientController extends Controller
                 'uuid' => $user->guest_uuid
             ]
         ]);
+
+        }catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error deleting record',
+                'error'   => $e->getMessage(),
+                'uuid'    => $request->uuid
+            ], 500);
+        }
     }
 
 

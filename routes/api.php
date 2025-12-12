@@ -81,10 +81,12 @@ Route::middleware(['api.solicitudes'])->group(function () {
             });
         });
         
+    
+    });
+
         // Legacy routes
         Route::post('/ticket', [createSolicitud::class, 'store']);
         Route::delete('/ticket/destroy', [deleteSolicitud::class, 'destroy']);
         Route::get('/ticket', [readSolicitud::class, 'read']);
         Route::put('/ticket', [updateSolicitud::class, 'update']);
-    });
 });
