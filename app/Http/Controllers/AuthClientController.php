@@ -6,14 +6,17 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use App\Models\Business;
+use Illuminate\Support\Facades\Log;
+use App\Helpers\BusinessHelper;
 
 class AuthClientController extends Controller
 {
    public function loginOrRegister(Request $request)
 {
     // Get business from middleware
-    $business = $request->get('current_business');
-    
+   $business = $request->get('current_business');
+
+   try{
     if (!$business) {
         return response()->json([
             'error' => 'business_context_required',
@@ -28,11 +31,10 @@ class AuthClientController extends Controller
     ]);
 
     // Find room WITHIN THIS SPECIFIC BUSINESS
-    $room = User::where('business_uuid', $business->uuid)
+    $room = User::forCurrentBusiness()
         ->where('role', 'client')
         ->where('room_number', $validated['room_number'])
         ->first();
-
     if (!$room) {
         return response()->json([
             'error' => 'room_not_found',
@@ -105,6 +107,17 @@ class AuthClientController extends Controller
             ]
         ], 200);
     }
+
+   }catch (\Illuminate\Validation\ValidationException $e) {
+        Log::error($e->getMessage());
+        return response()->json([
+            'error' => 'Bad Request',
+            'message' => 'Missing or invalid parameters',
+            'errors' => $e->errors()
+        ], 400);
+    }
+    
+    
 
     // Fallback - should never reach here
     return response()->json([
