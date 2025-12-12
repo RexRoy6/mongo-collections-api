@@ -4,12 +4,14 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
 
 class AdminKitchenController extends Controller
 {
     public function createUser(Request $request)
     {
-        $validated = $request->validate([
+        try{
+            $validated = $request->validate([
             'kitchenUsers'                   => 'required|array|min:1',
             'kitchenUsers.*.name_kitchenUser'   => 'required|string',
             'kitchenUsers.*.number_kitchenNumber' => 'required|int',
@@ -57,5 +59,15 @@ class AdminKitchenController extends Controller
             'message' => 'Kitchen staff creation processed',
             'data'    => $created
         ], 200);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+        Log::error($e->getMessage());
+        return response()->json([
+            'error' => 'Bad Request',
+            'message' => 'Missing or invalid parameters',
+            'errors' => $e->errors()
+        ], 400);
+    }
+        
     }
 }
