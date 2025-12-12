@@ -383,31 +383,4 @@ class HotelOrderController extends Controller
             'business' => $business->getPublicInfo()
         ], 200);
     }
-
-
-
-    private function validateKitchenUser(Request $request)
-{
-    $uuid = $request->header('kitchenUser_uuid');
-
-    if (!$uuid) return null;
-
-    return User::where('role','kitchen')
-               ->where('kitchenUser_uuid',$uuid)
-               ->where('is_active',true)
-               ->first();
-}
-
-
-      private function validateGuestUser(Request $request)
-{
-    $uuid = $request->header('guest_uuid');
-
-    if (!$uuid) return null;
-
-    return User::where('role','client')
-               ->where('guest_uuid',$uuid)
-               ->where('is_occupied',true)
-               ->first();
-}
 }
