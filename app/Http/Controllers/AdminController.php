@@ -126,4 +126,67 @@ class AdminController extends Controller
     
 }
 
+public function create_user(Request $request)
+    {
+      try {
+        $validated = $request->validate([
+            'users' => 'required|array|min:1',
+            'users.*.room_number' => 'required|integer',
+            'users.*.room_key'    => 'required|integer',
+            'business_uuid' => 'required|string',
+        ]);
+    
+
+        $createdRooms = [];
+
+        foreach ($validated['rooms'] as $roomData) {
+
+            // Check if room already exists
+            $exists = User::where('business_uuid', $validated['business_uuid'])
+                ->where('role', 'client')
+                ->where('room_number', $roomData['room_number'])
+                ->first();
+
+            if ($exists) {
+                // Skip existing room but add info to response
+                $createdRooms[] = [
+                    'room_number' => $roomData['room_number'],
+                    'status'      => 'already exists'
+                ];
+                continue;
+            }
+
+            // Create room
+            $room = new User([
+                'business_uuid' => $validated['business_uuid'],
+                'role'        => 'client',
+                'room_number' => $roomData['room_number'],
+                'room_key'    => $roomData['room_key'],
+                'guest_uuid'  => null,
+                'guest_name'  => null,
+                'is_occupied' => false,
+            ]);
+
+            $room->save();
+
+            $createdRooms[] = [
+                'room_number' => $room->room_number,
+                'status'      => 'created'
+            ];
+        }
+
+        return response()->json([
+            'message' => 'Room creation processed',
+            'rooms'   => $createdRooms
+        ], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+        Log::error($e->getMessage());
+        return response()->json([
+            'error' => 'Bad Request',
+            'message' => 'Missing or invalid parameters',
+            'errors' => $e->errors()
+        ], 400);
+    }
+    }
+
 }

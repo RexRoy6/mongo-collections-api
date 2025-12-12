@@ -43,6 +43,9 @@ Route::middleware(['api.solicitudes'])->group(function () {
         Route::post('kitchenUsers/create',[AdminKitchenController::class,'createUser']);
         Route::post('hotel-rooms/create',[AdminController::class,'create']);
         Route::post('createMenu',[AdminController::class,'createMenu']);
+        //create users for other business
+        Route::post('createUser',[AdminController::class,'create_user']);
+
         
         // Other admin routes...
     });
