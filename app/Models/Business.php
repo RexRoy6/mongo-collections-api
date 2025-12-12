@@ -20,9 +20,7 @@ class Business extends BaseMongoModel
 
     protected $casts = [
         'business_code' => 'integer',
-        'is_active' => 'boolean',
-        'config' => 'array',
-        'public_config' => 'array',
+        'is_active' => 'boolean'
     ];
 
     protected $attributes = [
@@ -94,19 +92,60 @@ class Business extends BaseMongoModel
         ];
     }
 
-      /**
-     * Get default config values
+     /**
+     * Get config with defaults
      */
     public function getConfigAttribute($value)
     {
         $defaults = [
             'timezone' => 'UTC',
             'currency' => 'mxn',
-            'language' => 'en'
+            'language' => 'en',
+            'max_order_items' => 10,
+            'order_timeout_minutes' => 30,
         ];
 
-        $config = $value ? json_decode($value, true) : [];
+        // Value is already an array (MongoDB stores arrays natively)
+        $config = is_array($value) ? $value : [];
         
         return array_merge($defaults, $config);
+    }
+
+       /**
+     * Get public_config with defaults
+     */
+    public function getPublicConfigAttribute($value)
+    {
+        $defaults = [
+            'theme' => 'default',
+            'primary_color' => '#4a90e2',
+            'secondary_color' => '#f5a623',
+            'logo_url' => null,
+            'welcome_message' => "Welcome to {$this->business_info}",
+            'login_options' => ['client', 'kitchen'],
+        ];
+
+        // Value is already an array (MongoDB stores arrays natively)
+        $publicConfig = is_array($value) ? $value : [];
+        
+        return array_merge($defaults, $publicConfig);
+    }
+
+    /**
+     * Set config attribute
+     */
+    public function setConfigAttribute($value)
+    {
+        // Ensure it's stored as array
+        $this->attributes['config'] = is_array($value) ? $value : [];
+    }
+
+    /**
+     * Set public_config attribute
+     */
+    public function setPublicConfigAttribute($value)
+    {
+        // Ensure it's stored as array
+        $this->attributes['public_config'] = is_array($value) ? $value : [];
     }
 }

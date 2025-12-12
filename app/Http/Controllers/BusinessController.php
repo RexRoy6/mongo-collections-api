@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Business;
+use Illuminate\Support\Facades\Log;
 
 
 class BusinessController extends Controller
@@ -15,7 +16,9 @@ class BusinessController extends Controller
     public function createBusiness(Request $request)
     {
 
-        $validated = $request->validate([
+        try{
+
+             $validated = $request->validate([
             'business_key'  => 'required|string',
             'business_info' => 'nullable|string',
             'is_active'     => 'boolean',
@@ -59,6 +62,18 @@ class BusinessController extends Controller
                 ]
             ]
         ], 201);
+
+        } catch (\Exception $e) {
+
+            Log::error("Error creating solicitud", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+
+       
     }
 
     //falta agregar put /updateBusiness/listBusinesse

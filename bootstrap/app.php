@@ -27,8 +27,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // Order matters: CORS first, then business detection, then Sanctum
         $middleware->api(append: [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-            \App\Http\Middleware\DetectBusiness::class, // Add this here
             \App\Http\Middleware\ApiSolicitudes::class,
+            \App\Http\Middleware\DetectBusiness::class, // Add this here
+            
+            
         ]);
 
         // If you want DetectBusiness on ALL API requests (recommended)
