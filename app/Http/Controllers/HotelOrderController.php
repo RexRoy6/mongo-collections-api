@@ -246,7 +246,7 @@ public function read(Request $request)
         ]);
 
         
-         $order = Order::where('created_by',$validated['guest_uuid'])
+         $order = Order::where('created_by',$validated['guest_uuid'])// aqui debemos ponerle el filtto para que solo aparezcan las del dia
                   ->get();
      
 
