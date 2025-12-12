@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+use App\Models\Business;
+
 
 class KitchenAuthController extends Controller
 {
@@ -60,11 +63,11 @@ class KitchenAuthController extends Controller
         $authUser = \App\Models\kitchenAuthUser::updateOrCreate(
             [
                 'kitchenUser_uuid' => $staff->kitchenUser_uuid,
-                'business_uuid' => $business->uuid // Add business context
+                'business_uuid' => $business->uuid, // Add business context
+                'business_key' => $business->business_key
             ],
             [
                 'name_kitchenUser'  => $staff->name_kitchenUser,
-                'business_key' => $business->business_key // For easy reference
             ]
         );
 

@@ -38,6 +38,9 @@ Route::middleware(['api.solicitudes'])->group(function () {
         Route::get('/business/{businessUuid}', [BusinessController::class, 'getBusiness']);
         Route::put('/business/{businessUuid}', [BusinessController::class, 'updateBusiness']);
         Route::patch('/business/{businessUuid}/toggle-status', [BusinessController::class, 'toggleBusinessStatus']);
+
+        ///kitchen controller
+        Route::post('kitchenUsers/create',[AdminKitchenController::class,'createUser']);
         
         // Other admin routes...
     });

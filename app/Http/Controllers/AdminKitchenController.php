@@ -7,13 +7,14 @@ use App\Models\User;
 
 class AdminKitchenController extends Controller
 {
-    public function create(Request $request)
+    public function createUser(Request $request)
     {
         $validated = $request->validate([
             'kitchenUsers'                   => 'required|array|min:1',
             'kitchenUsers.*.name_kitchenUser'   => 'required|string',
             'kitchenUsers.*.number_kitchenNumber' => 'required|int',
             'kitchenUsers.*.kitchenUser_key'      => 'required|int',
+            'business_uuid' => 'required|string',
         ]);
 
         $created = [];
@@ -21,7 +22,8 @@ class AdminKitchenController extends Controller
         foreach ($validated['kitchenUsers'] as $kUser) {
 
             // Prevent duplicate staff number
-            $exists = User::where('role', 'kitchen')
+            $exists = User::where('business_uuid', $validated['business_uuid'])
+                        ->where('role', 'kitchen')
                         ->where('number_kitchenNumber', $kUser['number_kitchenNumber'])
                         ->first();
 
@@ -34,6 +36,7 @@ class AdminKitchenController extends Controller
             }
 
             $staff = new User([
+                'business_uuid' => $validated['business_uuid'],
                 'role' => 'kitchen',
                 'name_kitchenUser'      => $kUser['name_kitchenUser'],
                 'number_kitchenNumber'  => $kUser['number_kitchenNumber'],
