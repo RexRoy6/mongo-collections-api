@@ -42,6 +42,7 @@ Route::middleware(['api.solicitudes'])->group(function () {
         ///crear cocina hotel y cuartos de hotel
         Route::post('kitchenUsers/create',[AdminKitchenController::class,'createUser']);
         Route::post('hotel-rooms/create',[AdminController::class,'create']);
+        Route::post('createMenu',[AdminController::class,'createMenu']);
         
         // Other admin routes...
     });
