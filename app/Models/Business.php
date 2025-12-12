@@ -85,7 +85,7 @@ class Business extends BaseMongoModel
             'uuid' => $this->uuid,
             'name' => $this->business_info,
             'key' => $this->business_key,
-            'code' => $this->business_code,
+            //'code' => $this->business_code,
             'is_active' => $this->is_active,
             'public_config' => $publicConfig,
             'created_at' => $this->created_at,

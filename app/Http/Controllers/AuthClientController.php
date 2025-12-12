@@ -9,80 +9,109 @@ use App\Models\Business;
 
 class AuthClientController extends Controller
 {
-    public function loginOrRegister(Request $request)
-    {
-
-        try{
-            // Get business from middleware
-        $business = $request->get('current_business');
-        
-        if (!$business) {
-            return response()->json([
-                'error' => 'business_context_required',
-                'message' => 'Business context is required for authentication'
-            ], 400);
-        }
-
-        $validated = $request->validate([
-            'room_number' => 'required|integer',
-            'room_key' => 'required|integer',
-            'guest_name' => 'required|string',
-        ]);
-
-        // Find user within THIS SPECIFIC BUSINESS
-        $user = User::where('business_uuid', $business->uuid)
-            ->where('role', 'client')
-            ->where('room_number', $validated['room_number'])
-            ->where('room_key', $validated['room_key'])
-            ->first();
-
-            //dd($user);
-        
-        if (!$user) {
-            // Create new user FOR THIS BUSINESS
-            $user = User::create([
-                'business_uuid' => $business->uuid, // Critical: business association
-                'role' => 'client',
-                'room_number' => $validated['room_number'],
-                'room_key' => $validated['room_key'],
-                'guest_name' => $validated['guest_name'],
-            ]);
-        } else {
-            // Update existing user with guest name
-            $user->guest_name = $validated['guest_name'];
-            $user->save();
-        }
-        
-        // Assign guest to room
-        $user->assignGuest($validated['guest_name']);
-        
-        // Create token with business scope
-        $token = $user->createToken('client-token', [
-            'client:basic',
-            'business:' . $business->business_key
-        ])->plainTextToken;
-        
+   public function loginOrRegister(Request $request)
+{
+    // Get business from middleware
+    $business = $request->get('current_business');
+    
+    if (!$business) {
         return response()->json([
-            'access_token' => $token,
-            'token_type' => 'Bearer',
-            'expires_in' => 86400,
-            'business' => $business->getPublicInfo(),
-            'guest' => [
-                'name' => $user->guest_name,
-                'room' => $user->room_number,
-                'uuid' => $user->guest_uuid
-            ]
-        ]);
-
-        }catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error deleting record',
-                'error'   => $e->getMessage(),
-                'uuid'    => $request->uuid
-            ], 500);
-        }
+            'error' => 'business_context_required',
+            'message' => 'Business context is required for authentication'
+        ], 400);
     }
 
+    $validated = $request->validate([
+        'room_number' => 'required|integer',
+        'room_key'    => 'required|integer',
+        'guest_name'  => 'nullable|string' // only needed if registering
+    ]);
+
+    // Find room WITHIN THIS SPECIFIC BUSINESS
+    $room = User::where('business_uuid', $business->uuid)
+        ->where('role', 'client')
+        ->where('room_number', $validated['room_number'])
+        ->first();
+
+    if (!$room) {
+        return response()->json([
+            'error' => 'room_not_found',
+            'message' => 'Room not found in this business'
+        ], 404);
+    }
+
+    // Check key
+    if ($room->room_key != $validated['room_key']) {
+        return response()->json([
+            'error' => 'invalid_room_key',
+            'message' => 'Invalid room key'
+        ], 403);
+    }
+
+    // If already occupied → return existing guest info
+    if ($room->is_occupied && $room->guest_uuid) {
+        return response()->json([
+            'error' => 'room_already_occupied',
+            'message' => 'Room already occupied',
+            'guest_uuid' => $room->guest_uuid,
+            'guest_name' => $room->guest_name,
+            'room_number' => $room->room_number,
+            'business' => $business->getPublicInfo()
+        ], 422);
+    }
+
+    // If room is empty → register new guest
+    if (!$room->is_occupied) {
+
+        if (empty($validated['guest_name'])) {
+            return response()->json([
+                'error' => 'guest_name_required',
+                'message' => 'guest_name is required for new guest registration'
+            ], 422);
+        }
+
+        // Assign guest to room
+        $room->assignGuest($validated['guest_name']);
+
+        // Create or update GuestAuthUser with business context
+        $authUser = \App\Models\GuestAuthUser::updateOrCreate(
+            [
+                'guest_uuid' => $room->guest_uuid,
+                'business_uuid' => $business->uuid,
+                'business_key' => $business->business_key
+            ],
+            [
+                'guest_name'  => $room->guest_name,
+                'room_number' => $room->room_number,
+            ]
+        );
+
+        // Create token with business scope
+        $token = $authUser->createToken('guest-token', [
+            'guest:basic',
+            'business:' . $business->business_key
+        ])->plainTextToken;
+
+        return response()->json([
+            'access_token' => $token,
+            'token_type'   => 'Bearer',
+            'expires_in'   => 14400,
+            'business' => $business->getPublicInfo(),
+            'guest' => [
+                'message'     => 'Guest registered successfully',
+                'guest_uuid'  => $room->guest_uuid,
+                'guest_name'  => $room->guest_name,
+                'room_number' => $room->room_number
+            ]
+        ], 200);
+    }
+
+    // Fallback - should never reach here
+    return response()->json([
+        'error' => 'unknown_error',
+        'message' => 'An unexpected error occurred'
+    ], 500);
+}
 
      /**
      * 3) RESET ROOM
