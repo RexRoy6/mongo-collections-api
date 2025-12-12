@@ -193,7 +193,8 @@ class HotelOrderController extends Controller
 
     public function read(Request $request)
     {
-        // Get business context
+        try{
+              // Get business context
         $business = $request->get('current_business');
         
         if (!$business) {
@@ -237,11 +238,22 @@ class HotelOrderController extends Controller
                 'guest_uuid' => $guestUuid
             ]
         ], 200);
+
+        }catch (\Illuminate\Validation\ValidationException $e) {
+        Log::error($e->getMessage());
+        return response()->json([
+            'error' => 'Bad Request',
+            'message' => 'Missing or invalid parameters',
+            'errors' => $e->errors()
+        ], 400);
+    }
     }
 
     public function cancel(Request $request)
     {
-        // Get business context
+
+        try{
+             // Get business context
         $business = $request->get('current_business');
         
         if (!$business) {
@@ -260,6 +272,7 @@ class HotelOrderController extends Controller
         $order = Order::where('business_uuid', $business->uuid)
                      ->where('uuid', $validated['order_uuid'])
                      ->first();
+
 
         if (!$order) {
             return response()->json([
@@ -297,11 +310,23 @@ class HotelOrderController extends Controller
             'order' => $order,
             'business' => $business->getPublicInfo()
         ], 200);
+
+
+        }catch (\Illuminate\Validation\ValidationException $e) {
+        Log::error($e->getMessage());
+        return response()->json([
+            'error' => 'Bad Request',
+            'message' => 'Missing or invalid parameters',
+            'errors' => $e->errors()
+        ], 400);
+    }
+       
     }
 
     public function listOrders(Request $request)
     {
-        // Get business context
+        try{
+            // Get business context
         $business = $request->get('current_business');
         
         if (!$business) {
@@ -328,11 +353,22 @@ class HotelOrderController extends Controller
                 'date' => \Carbon\Carbon::today()->toDateString()
             ]
         ], 200);
+
+        }catch (\Illuminate\Validation\ValidationException $e) {
+        Log::error($e->getMessage());
+        return response()->json([
+            'error' => 'Bad Request',
+            'message' => 'Missing or invalid parameters',
+            'errors' => $e->errors()
+        ], 400);
+    }
     }
 
     public function updateOrderStatus(Request $request)
     {
-        // Get business context
+
+        try{
+             // Get business context
         $business = $request->get('current_business');
         
         if (!$business) {
@@ -382,5 +418,14 @@ class HotelOrderController extends Controller
             'order' => $order,
             'business' => $business->getPublicInfo()
         ], 200);
+
+        }catch (\Illuminate\Validation\ValidationException $e) {
+        Log::error($e->getMessage());
+        return response()->json([
+            'error' => 'Bad Request',
+            'message' => 'Missing or invalid parameters',
+            'errors' => $e->errors()
+        ], 400);
+    }
     }
 }
