@@ -76,8 +76,6 @@ class BusinessController extends Controller
        
     }
 
-    //falta agregar put /updateBusiness/listBusinesse
-
 // In BusinessController
 public function identify(Request $request)
 {
@@ -111,16 +109,14 @@ public function identify(Request $request)
      */
     public function updateBusiness(Request $request, $businessUuid)
     {
-        $business = Business::where('uuid', $businessUuid)->firstOrFail();
+        try{
+             $business = Business::where('uuid', $businessUuid)->firstOrFail();
 
         $validated = $request->validate([
             'business_info' => 'nullable|string',
-            //'is_active'     => 'boolean',
             'config'        => 'nullable|array',
+            'public_config' => 'nullable|array'
         ]);
-
-        // Don't allow changing business_key via update
-        // Create a new business if key needs to change
 
         $business->update($validated);
 
@@ -128,6 +124,16 @@ public function identify(Request $request)
             'message' => 'Business updated successfully',
             'business' => $business
         ], 200);
+
+        }catch (\Exception $e) {
+
+            Log::error("Error updateBusiness", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
         /**
