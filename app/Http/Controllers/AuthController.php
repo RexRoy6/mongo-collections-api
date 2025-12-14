@@ -113,8 +113,9 @@ class AuthController extends Controller
      */
     public function staffLogin(Request $request)
     {
-        $business = $request->get('current_business');
-        dd($business);
+
+        try{
+             $business = $request->get('current_business');
 
         $data = $request->validate([
             'user_number' => 'required|int',
@@ -144,6 +145,14 @@ class AuthController extends Controller
                 'name' => $user->user_name,
             ]
         ]);
+
+        } catch (\Exception $e) {
+        Log::error('Error in create_user: ' . $e->getMessage());
+        return response()->json([
+            'error' => 'Server Error',
+            'message' => 'An unexpected error occurred'
+        ], 500);
+    }
     }
 
     /**
