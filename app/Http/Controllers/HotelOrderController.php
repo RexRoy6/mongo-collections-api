@@ -263,7 +263,6 @@ class HotelOrderController extends Controller
         try {
             // Get business context
             $business = $request->get('current_business');
-
             if (!$business) {
                 return response()->json([
                     'error' => 'business_context_required',
@@ -275,6 +274,16 @@ class HotelOrderController extends Controller
                 'order_uuid' => 'required|uuid',
                 'notes' => 'nullable|string'
             ]);
+              // Get authenticated user (guest)
+            $user = $request->user();
+            //dd($user);
+
+            if (!$user) {
+                return response()->json([
+                    'error' => 'unauthorized',
+                    'message' => 'Authentication required'
+                ], 401);
+            }
 
             // Find order WITHIN THIS BUSINESS
             $order = Order::where('business_uuid', $business->uuid)
