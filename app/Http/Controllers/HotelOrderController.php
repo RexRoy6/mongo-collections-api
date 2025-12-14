@@ -16,7 +16,6 @@ class HotelOrderController extends Controller
         try {
             // 1) Get business context from middleware
             $business = $request->get('current_business');
-            
             if (!$business) {
                 return response()->json([
                     'error' => 'business_context_required',
@@ -26,36 +25,46 @@ class HotelOrderController extends Controller
 
             // 2) Validate incoming payload
             $validated = $request->validate([
-                'guest_uuid' => 'required|uuid',
+                'menu_key' => 'nullable|string',
                 'solicitud' => 'required|array',
                 'solicitud.items' => 'required|array|min:1',
-                'solicitud.menu_key' => 'nullable|string',
                 'solicitud.note' => 'nullable|string',
                 'solicitud.currency' => 'required|string|in:mxn,usd',
             ]);
-
-            // 3) Re-check guest is active WITHIN THIS BUSINESS
-            $guest = User::where('business_uuid', $business->uuid)
-                         ->where('guest_uuid', $validated['guest_uuid'])
-                         ->where('role', 'client')
-                         ->where('is_occupied', true)
-                         ->first();
-
-            if (!$guest) {
+            $user = $request->user();
+            if (!$user) {
                 return response()->json([
-                    'error' => 'guest_not_found',
-                    'message' => 'Guest session not found in this business'
-                ], 404);
+                    'error' => 'unauthenticated',
+                    'message' => 'Authentication required'
+                ], 401);
             }
 
+            if ($user->business_uuid !== $business->uuid) {
+                return response()->json([
+                    'error' => 'cross_business_access',
+                    'message' => 'User does not belong to this business'
+                ], 403);
+            }
+            if ($user->role !== 'client') {
+                return response()->json([
+                    'error' => 'invalid_role',
+                    'message' => 'Only guests can create orders'
+                ], 403);
+            }
+            if (!$user->is_occupied) {//ver como usarlo para los baristas tambien
+                return response()->json([
+                    'error' => 'guest_not_active',
+                    'message' => 'Guest is not currently checked in'
+                ], 403);
+            }
             // 4) Determine menu_key (use provided or default)
-            $menuKey = $validated['solicitud']['menu_key'] ?? 'menu_cafe';
+            $menuKey = $validated['menu_key'] ?? 'menu_cafe';//aqui cambiarloo, reoq eue ese menu no existe ya
 
             // 5) Load menu WITHIN THIS BUSINESS
             $menu = Menu::where('business_uuid', $business->uuid)
-                        ->where('menu_key', $menuKey)
-                        ->first();
-                        
+                ->where('menu_key', $menuKey)
+                ->first();
+
             if (!$menu) {
                 return response()->json([
                     'error' => 'menu_not_found',
@@ -74,7 +83,7 @@ class HotelOrderController extends Controller
             // 7) Validate each ordered item and compute totals
             $orderItems = [];
             $totalCents = 0;
-            
+
             foreach ($validated['solicitud']['items'] as $idx => $it) {
                 if (!isset($it['name'])) {
                     return response()->json([
@@ -82,7 +91,7 @@ class HotelOrderController extends Controller
                         'message' => "Item at index $idx missing name"
                     ], 422);
                 }
-                
+
                 $nameKey = strtolower($it['name']);
                 if (!isset($lookup[$nameKey])) {
                     return response()->json([
@@ -138,19 +147,19 @@ class HotelOrderController extends Controller
             $finalSolicitud['total'] = $totalCents / 100;
             $finalSolicitud['total_cents'] = $totalCents;
             $finalSolicitud['currency'] = $validated['solicitud']['currency'];
-            $finalSolicitud['guest_room'] = $guest->room_number;
+            $finalSolicitud['guest_room'] = $user->room_number;
 
             // 9) Create order WITH BUSINESS CONTEXT
             $orderData = [
                 'business_uuid' => $business->uuid,
-                'channel' => 'hotel-app',
-                'created_by' => $guest->guest_uuid,
+                'channel' => 'hotel-app',//aqui cambairlo
+                'created_by' => $user->uuid,
                 'solicitud' => $finalSolicitud,
                 'current_status' => 'created',
                 'status_history' => [[
                     'status' => 'created',
                     'updated_at' => now()->toIso8601String(),
-                    'updated_by' => $guest->guest_uuid,
+                    'updated_by' => $user->uuid,
                     'notes' => $validated['solicitud']['note'] ?? 'Order placed'
                 ]]
             ];
@@ -163,25 +172,23 @@ class HotelOrderController extends Controller
                 'order' => $order,
                 'business' => $business->getPublicInfo(),
                 'guest' => [
-                    'name' => $guest->guest_name,
-                    'room' => $guest->room_number,
-                    'uuid' => $guest->guest_uuid
+                    'name' => $user->name,
+                    'room' => $user->room_number,
+                    'uuid' => $user->uuid
                 ]
-            ], 201);
-
+            ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'error' => 'validation_error',
                 'message' => 'Validation failed',
                 'errors' => $e->errors()
             ], 422);
-            
         } catch (\Exception $e) {
             Log::error("Error creating hotel order", [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'business_uuid' => $business->uuid ?? null,
-                'guest_uuid' => $validated['guest_uuid'] ?? null
+                'guest_uuid' => $user->uuid ?? null
             ]);
 
             return response()->json([
@@ -193,239 +200,238 @@ class HotelOrderController extends Controller
 
     public function read(Request $request)
     {
-        try{
-              // Get business context
-        $business = $request->get('current_business');
-        
-        if (!$business) {
+        try {
+            // Get business context
+            $business = $request->get('current_business');
+
+            if (!$business) {
+                return response()->json([
+                    'error' => 'business_context_required',
+                    'message' => 'Business context is required'
+                ], 400);
+            }
+
+            // Get authenticated user (guest)
+            $user = $request->user();
+
+            if (!$user) {
+                return response()->json([
+                    'error' => 'unauthorized',
+                    'message' => 'Authentication required'
+                ], 401);
+            }
+
+            // Get guest_uuid from token (assuming it's stored in token)
+            $guestUuid = $user->guest_uuid ?? $request->input('guest_uuid');
+
+            if (!$guestUuid) {
+                return response()->json([
+                    'error' => 'guest_uuid_required',
+                    'message' => 'Guest UUID is required'
+                ], 400);
+            }
+
+            // Get orders for this guest within this business
+            $orders = Order::where('business_uuid', $business->uuid)
+                ->where('created_by', $guestUuid)
+                ->orderBy('created_at', 'desc')
+                ->get();
+
             return response()->json([
-                'error' => 'business_context_required',
-                'message' => 'Business context is required'
+                'orders' => $orders,
+                'business' => $business->getPublicInfo(),
+                'meta' => [
+                    'total' => $orders->count(),
+                    'guest_uuid' => $guestUuid
+                ]
+            ], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error($e->getMessage());
+            return response()->json([
+                'error' => 'Bad Request',
+                'message' => 'Missing or invalid parameters',
+                'errors' => $e->errors()
             ], 400);
         }
-
-        // Get authenticated user (guest)
-        $user = $request->user();
-        
-        if (!$user) {
-            return response()->json([
-                'error' => 'unauthorized',
-                'message' => 'Authentication required'
-            ], 401);
-        }
-
-        // Get guest_uuid from token (assuming it's stored in token)
-        $guestUuid = $user->guest_uuid ?? $request->input('guest_uuid');
-        
-        if (!$guestUuid) {
-            return response()->json([
-                'error' => 'guest_uuid_required',
-                'message' => 'Guest UUID is required'
-            ], 400);
-        }
-
-        // Get orders for this guest within this business
-        $orders = Order::where('business_uuid', $business->uuid)
-                      ->where('created_by', $guestUuid)
-                      ->orderBy('created_at', 'desc')
-                      ->get();
-
-        return response()->json([
-            'orders' => $orders,
-            'business' => $business->getPublicInfo(),
-            'meta' => [
-                'total' => $orders->count(),
-                'guest_uuid' => $guestUuid
-            ]
-        ], 200);
-
-        }catch (\Illuminate\Validation\ValidationException $e) {
-        Log::error($e->getMessage());
-        return response()->json([
-            'error' => 'Bad Request',
-            'message' => 'Missing or invalid parameters',
-            'errors' => $e->errors()
-        ], 400);
-    }
     }
 
     public function cancel(Request $request)
     {
 
-        try{
-             // Get business context
-        $business = $request->get('current_business');
-        
-        if (!$business) {
+        try {
+            // Get business context
+            $business = $request->get('current_business');
+
+            if (!$business) {
+                return response()->json([
+                    'error' => 'business_context_required',
+                    'message' => 'Business context is required'
+                ], 400);
+            }
+
+            $validated = $request->validate([
+                'order_uuid' => 'required|uuid',
+                'notes' => 'nullable|string'
+            ]);
+
+            // Find order WITHIN THIS BUSINESS
+            $order = Order::where('business_uuid', $business->uuid)
+                ->where('uuid', $validated['order_uuid'])
+                ->first();
+
+
+            if (!$order) {
+                return response()->json([
+                    'error' => 'order_not_found',
+                    'message' => 'Order not found in this business'
+                ], 404);
+            }
+
+            // Check if order can be cancelled
+            if (!$order->canTransition('client', 'cancelled')) {
+                return response()->json([
+                    'error' => 'invalid_status_transition',
+                    'message' => 'Order cannot be cancelled in its current status',
+                    'current_status' => $order->current_status
+                ], 422);
+            }
+
+            // Update order status
+            $success = $order->updateStatus(
+                role: 'client',
+                newStatus: 'cancelled',
+                notes: $validated['notes'] ?? 'Cancelled by guest'
+            );
+
+            if (!$success) {
+                return response()->json([
+                    'error' => 'status_update_failed',
+                    'message' => 'Failed to update order status'
+                ], 500);
+            }
+
             return response()->json([
-                'error' => 'business_context_required',
-                'message' => 'Business context is required'
+                'success' => true,
+                'message' => 'Order cancelled successfully',
+                'order' => $order,
+                'business' => $business->getPublicInfo()
+            ], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error($e->getMessage());
+            return response()->json([
+                'error' => 'Bad Request',
+                'message' => 'Missing or invalid parameters',
+                'errors' => $e->errors()
             ], 400);
         }
-
-        $validated = $request->validate([
-            'order_uuid' => 'required|uuid',
-            'notes' => 'nullable|string'
-        ]);
-
-        // Find order WITHIN THIS BUSINESS
-        $order = Order::where('business_uuid', $business->uuid)
-                     ->where('uuid', $validated['order_uuid'])
-                     ->first();
-
-
-        if (!$order) {
-            return response()->json([
-                'error' => 'order_not_found',
-                'message' => 'Order not found in this business'
-            ], 404);
-        }
-
-        // Check if order can be cancelled
-        if (!$order->canTransition('client', 'cancelled')) {
-            return response()->json([
-                'error' => 'invalid_status_transition',
-                'message' => 'Order cannot be cancelled in its current status',
-                'current_status' => $order->current_status
-            ], 422);
-        }
-
-        // Update order status
-        $success = $order->updateStatus(
-            role: 'client',
-            newStatus: 'cancelled',
-            notes: $validated['notes'] ?? 'Cancelled by guest'
-        );
-
-        if (!$success) {
-            return response()->json([
-                'error' => 'status_update_failed',
-                'message' => 'Failed to update order status'
-            ], 500);
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Order cancelled successfully',
-            'order' => $order,
-            'business' => $business->getPublicInfo()
-        ], 200);
-
-
-        }catch (\Illuminate\Validation\ValidationException $e) {
-        Log::error($e->getMessage());
-        return response()->json([
-            'error' => 'Bad Request',
-            'message' => 'Missing or invalid parameters',
-            'errors' => $e->errors()
-        ], 400);
-    }
-       
     }
 
     public function listOrders(Request $request)
     {
-        try{
+        try {
             // Get business context
-        $business = $request->get('current_business');
-        
-        if (!$business) {
+            $business = $request->get('current_business');
+
+            if (!$business) {
+                return response()->json([
+                    'error' => 'business_context_required',
+                    'message' => 'Business context is required'
+                ], 400);
+            }
+
+            // Get orders for this business (today's orders)
+            $orders = Order::where('business_uuid', $business->uuid)
+                ->whereIn('current_status', [
+                    'created',
+                    'pending',
+                    'preparing',
+                    'ready',
+                    'delivered',
+                    'cancelled'
+                ])
+                ->whereDate('created_at', \Carbon\Carbon::today())
+                ->orderBy('created_at', 'desc')
+                ->get();
+
             return response()->json([
-                'error' => 'business_context_required',
-                'message' => 'Business context is required'
+                'orders' => $orders,
+                'business' => $business->getPublicInfo(),
+                'meta' => [
+                    'total' => $orders->count(),
+                    'date' => \Carbon\Carbon::today()->toDateString()
+                ]
+            ], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error($e->getMessage());
+            return response()->json([
+                'error' => 'Bad Request',
+                'message' => 'Missing or invalid parameters',
+                'errors' => $e->errors()
             ], 400);
         }
-
-        // Get orders for this business (today's orders)
-        $orders = Order::where('business_uuid', $business->uuid)
-            ->whereIn('current_status', [
-                'created', 'pending', 'preparing', 'ready', 'delivered', 'cancelled'
-            ])
-            ->whereDate('created_at', \Carbon\Carbon::today())
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return response()->json([
-            'orders' => $orders,
-            'business' => $business->getPublicInfo(),
-            'meta' => [
-                'total' => $orders->count(),
-                'date' => \Carbon\Carbon::today()->toDateString()
-            ]
-        ], 200);
-
-        }catch (\Illuminate\Validation\ValidationException $e) {
-        Log::error($e->getMessage());
-        return response()->json([
-            'error' => 'Bad Request',
-            'message' => 'Missing or invalid parameters',
-            'errors' => $e->errors()
-        ], 400);
-    }
     }
 
     public function updateOrderStatus(Request $request)
     {
 
-        try{
-             // Get business context
-        $business = $request->get('current_business');
-        
-        if (!$business) {
+        try {
+            // Get business context
+            $business = $request->get('current_business');
+
+            if (!$business) {
+                return response()->json([
+                    'error' => 'business_context_required',
+                    'message' => 'Business context is required'
+                ], 400);
+            }
+
+            $validated = $request->validate([
+                'order_uuid' => 'required|uuid',
+                'status' => 'required|string|in:created,pending,preparing,ready,delivered,cancelled',
+                'notes' => 'nullable|string'
+            ]);
+
+            // Find order WITHIN THIS BUSINESS
+            $order = Order::where('business_uuid', $business->uuid)
+                ->where('uuid', $validated['order_uuid'])
+                ->first();
+
+            if (!$order) {
+                return response()->json([
+                    'error' => 'order_not_found',
+                    'message' => 'Order not found in this business'
+                ], 404);
+            }
+
+            // Update order status (kitchen role)
+            $success = $order->updateStatus(
+                role: 'kitchen',
+                newStatus: $validated['status'],
+                notes: $validated['notes'] ?? "Status changed to {$validated['status']} by kitchen"
+            );
+
+            if (!$success) {
+                return response()->json([
+                    'error' => 'invalid_status_transition',
+                    'message' => 'Invalid status transition for this order',
+                    'current_status' => $order->current_status,
+                    'attempted_status' => $validated['status']
+                ], 422);
+            }
+
             return response()->json([
-                'error' => 'business_context_required',
-                'message' => 'Business context is required'
+                'success' => true,
+                'message' => 'Order status updated successfully',
+                'order' => $order,
+                'business' => $business->getPublicInfo()
+            ], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error($e->getMessage());
+            return response()->json([
+                'error' => 'Bad Request',
+                'message' => 'Missing or invalid parameters',
+                'errors' => $e->errors()
             ], 400);
         }
-
-        $validated = $request->validate([
-            'order_uuid' => 'required|uuid',
-            'status' => 'required|string|in:created,pending,preparing,ready,delivered,cancelled',
-            'notes' => 'nullable|string'
-        ]);
-
-        // Find order WITHIN THIS BUSINESS
-        $order = Order::where('business_uuid', $business->uuid)
-                     ->where('uuid', $validated['order_uuid'])
-                     ->first();
-
-        if (!$order) {
-            return response()->json([
-                'error' => 'order_not_found',
-                'message' => 'Order not found in this business'
-            ], 404);
-        }
-
-        // Update order status (kitchen role)
-        $success = $order->updateStatus(
-            role: 'kitchen',
-            newStatus: $validated['status'],
-            notes: $validated['notes'] ?? "Status changed to {$validated['status']} by kitchen"
-        );
-
-        if (!$success) {
-            return response()->json([
-                'error' => 'invalid_status_transition',
-                'message' => 'Invalid status transition for this order',
-                'current_status' => $order->current_status,
-                'attempted_status' => $validated['status']
-            ], 422);
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Order status updated successfully',
-            'order' => $order,
-            'business' => $business->getPublicInfo()
-        ], 200);
-
-        }catch (\Illuminate\Validation\ValidationException $e) {
-        Log::error($e->getMessage());
-        return response()->json([
-            'error' => 'Bad Request',
-            'message' => 'Missing or invalid parameters',
-            'errors' => $e->errors()
-        ], 400);
-    }
     }
 }

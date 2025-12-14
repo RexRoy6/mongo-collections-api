@@ -70,7 +70,7 @@ Route::middleware(['api.solicitudes'])->group(function () {
             Route::put('/staff/logout', [AuthController::class, 'staffLogout']);
         });
         
-        // Authenticated routes
+        // Authenticated routes for business: hotel/cafe etc
         Route::middleware(['auth:sanctum'])->group(function () {
             Route::prefix('orders')->group(function () {
                 Route::post('/', [HotelOrderController::class, 'create']);
