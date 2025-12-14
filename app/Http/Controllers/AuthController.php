@@ -125,8 +125,6 @@ class AuthController extends Controller
                 ->whereIn('role', ['kitchen', 'barista', 'admin'])
                 ->where('staff_number', $data['staff_number'])
                 ->first();
-            //dd($data,$user,$business);
-            //dd($user);
 
             if (!$user || $user->staff_key !== $data['staff_key']) {
                 return response()->json([
@@ -144,7 +142,8 @@ class AuthController extends Controller
                 'user' => [
                     'role' => $user->role,
                     'name' => $user->name,
-                ]
+                ],
+                'business' => $business->getPublicInfo()
             ]);
         } catch (\Exception $e) {
             Log::error('Error in log_inuser satff: ' . $e->getMessage());
@@ -216,7 +215,7 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'staff user logged out successfully',
             'business' => $business->getPublicInfo(),
-            'kitchen_staff' => [
+            'staff' => [
                 'number_staff_Number' => $staff->staff_number,
                 'name_staff' => $staff->name,
                 'is_active' => $staff->is_active,
