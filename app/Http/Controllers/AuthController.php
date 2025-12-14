@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Business;
+use App\Helpers\BusinessHelper;
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
@@ -13,7 +15,9 @@ class AuthController extends Controller
      */
     public function clientLogin(Request $request)
     {
-        $business = $request->get('current_business');
+
+        try{
+             $business = $request->get('current_business');
 
         if (!$business) {
             return response()->json([
@@ -64,6 +68,13 @@ class AuthController extends Controller
                 'room_number' => $room->room_number,
             ]
         ]);
+
+        } catch (\Exception $e) {
+        Log::error($e->getMessage());
+        return response()->json([
+            'errors' => $e->errors()
+        ], 500);}
+
     }
 
     /**
