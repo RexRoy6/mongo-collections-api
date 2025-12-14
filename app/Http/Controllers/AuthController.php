@@ -126,6 +126,7 @@ class AuthController extends Controller
             ->whereIn('role', ['kitchen', 'barista', 'admin'])
             ->where('user_number', $data['user_number'])
             ->first();
+            dd($data,$user,$business);
 
         if (!$user || $user->user_key !== $data['user_key']) {
             return response()->json([
@@ -147,7 +148,7 @@ class AuthController extends Controller
         ]);
 
         } catch (\Exception $e) {
-        Log::error('Error in create_user: ' . $e->getMessage());
+        Log::error('Error in log_inuser satff: ' . $e->getMessage());
         return response()->json([
             'error' => 'Server Error',
             'message' => 'An unexpected error occurred'

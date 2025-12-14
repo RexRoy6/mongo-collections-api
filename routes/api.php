@@ -38,8 +38,6 @@ Route::middleware(['api.solicitudes'])->group(function () {
         Route::patch('/business/{businessUuid}/toggle-status', [BusinessController::class, 'toggleBusinessStatus']);
 
         ///crear cocina hotel y cuartos de hotel
-        Route::post('kitchenUsers/create',[AdminKitchenController::class,'createUser']);
-        Route::post('hotel-rooms/create',[AdminController::class,'create']);
         Route::post('createMenu',[AdminController::class,'createMenu']);
         //create users for other business
         Route::post('createUser',[AdminController::class,'create_user']);
@@ -63,18 +61,6 @@ Route::middleware(['api.solicitudes'])->group(function () {
         // Business menus
         Route::get('/menus', [MenuController::class, 'getMenuByKey']);
         
-        // Authentication
-        // Route::prefix('auth')->group(function () {
-        //     Route::prefix('client')->group(function () {
-        //         Route::post('/login', [AuthClientController::class, 'loginOrRegister']);
-        //         Route::put('/reset-room', [AuthClientController::class, 'resetRoom']);
-        //     });
-            
-        //     Route::prefix('kitchen')->group(function () {
-        //         Route::post('/login', [KitchenAuthController::class, 'login']);
-        //         Route::put('/logout', [KitchenAuthController::class, 'logout']);
-        //     });
-        // });
         // Authentication refactor
         Route::prefix('auth')->group(function () {
             Route::post('/client/login', [AuthController::class, 'clientLogin']);
