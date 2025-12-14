@@ -76,7 +76,7 @@ class AuthClientController extends Controller
         $room->assignGuest($validated['guest_name']);
 
         // Create or update GuestAuthUser with business context
-        $authUser = \App\Models\GuestAuthUser::updateOrCreate(
+        $au = \App\Models\GuestAuthUser::updateOrCreate(
             [
                 'guest_uuid' => $room->guest_uuid,
                 'business_uuid' => $business->uuid,

@@ -106,4 +106,13 @@ class User extends BaseMongoModel
             'is_active' => false,
         ]);
     }
+
+public function issueToken(Business $business, string $tokenName = 'api-token')
+{
+    return $this->createToken($tokenName, [
+        'role:' . $this->role,
+        'business:' . $business->business_key,
+    ])->plainTextToken;
+}
+
 }

@@ -6,14 +6,12 @@ use  App\Http\Controllers\createSolicitud;
 use  App\Http\Controllers\deleteSolicitud;
 use  App\Http\Controllers\readSolicitud;
 use App\Http\Controllers\updateSolicitud;
-use App\Http\Controllers\AuthClientController;
 use App\Http\Controllers\HotelOrderController;
 use App\Http\Controllers\AdminController;
-use App\Http\Controllers\AdminKitchenController;
-use App\Http\Controllers\KitchenAuthController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\BusinessIdentificationController;
+use App\Http\Controllers\AuthController;
 
 // ========== ROUTES WITH API KEY VALIDATION ==========
 // ALL routes go through ApiSolicitudes first
@@ -66,16 +64,24 @@ Route::middleware(['api.solicitudes'])->group(function () {
         Route::get('/menus', [MenuController::class, 'getMenuByKey']);
         
         // Authentication
-        Route::prefix('auth')->group(function () {
-            Route::prefix('client')->group(function () {
-                Route::post('/login', [AuthClientController::class, 'loginOrRegister']);
-                Route::put('/reset-room', [AuthClientController::class, 'resetRoom']);
-            });
+        // Route::prefix('auth')->group(function () {
+        //     Route::prefix('client')->group(function () {
+        //         Route::post('/login', [AuthClientController::class, 'loginOrRegister']);
+        //         Route::put('/reset-room', [AuthClientController::class, 'resetRoom']);
+        //     });
             
-            Route::prefix('kitchen')->group(function () {
-                Route::post('/login', [KitchenAuthController::class, 'login']);
-                Route::put('/logout', [KitchenAuthController::class, 'logout']);
-            });
+        //     Route::prefix('kitchen')->group(function () {
+        //         Route::post('/login', [KitchenAuthController::class, 'login']);
+        //         Route::put('/logout', [KitchenAuthController::class, 'logout']);
+        //     });
+        // });
+        // Authentication refactor
+        Route::prefix('auth')->group(function () {
+            Route::post('/client/login', [AuthController::class, 'clientLogin']);
+            Route::put('/client/reset-room', [AuthController::class, 'clientResetRoom']);
+
+            Route::post('/staff/login', [AuthController::class, 'staffLogin']);
+            Route::post('/staff/logout', [AuthController::class, 'staffLogout']);
         });
         
         // Authenticated routes
