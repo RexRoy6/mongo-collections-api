@@ -114,6 +114,7 @@ class AuthController extends Controller
     public function staffLogin(Request $request)
     {
         $business = $request->get('current_business');
+        dd($business);
 
         $data = $request->validate([
             'user_number' => 'required|int',

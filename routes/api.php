@@ -81,7 +81,7 @@ Route::middleware(['api.solicitudes'])->group(function () {
             Route::put('/client/reset-room', [AuthController::class, 'clientResetRoom']);
 
             Route::post('/staff/login', [AuthController::class, 'staffLogin']);
-            Route::post('/staff/logout', [AuthController::class, 'staffLogout']);
+            Route::put('/staff/logout', [AuthController::class, 'staffLogout']);
         });
         
         // Authenticated routes
