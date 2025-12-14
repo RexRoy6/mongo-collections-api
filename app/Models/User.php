@@ -5,102 +5,105 @@ namespace App\Models;
 use App\Models\BaseMongoModel;
 use Laravel\Sanctum\HasApiTokens;
 use App\Models\Traits\BelongsToBusiness;
+use Illuminate\Support\Str;
 
 class User extends BaseMongoModel
 {
-    use HasApiTokens,BelongsToBusiness;
+    use HasApiTokens, BelongsToBusiness;
+
     protected $collection = 'users';
 
-   
     protected $fillable = [
         'business_uuid',
-        'role',
+        'role',              // client | kitchen | barista | admin
 
-        // ROOM USERS
+        // Shared identity
+        'name',
+        'email',
+        'password',
+
+        // Client (hotel room)
         'room_number',
         'room_key',
-        'guest_name',
         'guest_uuid',
         'is_occupied',
 
-        // KITCHEN USERS
-        'name_kitchenUser',
-        'number_kitchenNumber',
-        'kitchenUser_key',
-        'kitchenUser_uuid',
-        'is_active'
+        // Staff (kitchen / barista)
+        'staff_number',
+        'staff_key',
+        'is_active',
     ];
 
     protected $attributes = [
-        // room defaults
-        'guest_name'         => null,
-        'guest_uuid'         => null,
-        'is_occupied'        => false,
-
-        // kitchen defaults
-        'name_kitchenUser'   => null,
-        'number_kitchenNumber' => null,
-        'kitchenUser_key'     => null,
-        'kitchenUser_uuid'    => null,
-        'is_active'           => false,
+        'is_occupied' => false,
+        'is_active'   => false,
     ];
 
-    /**
-     * Validation rules for creating/updating users
-     */
-    public static function rules()
+    protected $hidden = [
+        'password',
+    ];
+
+    /* ===========================
+       Role helpers
+    ============================ */
+
+    public function isClient(): bool
     {
-        return [
-            'role'        => 'required|string|in:client,kitchen,admin',
-            'room_number' => 'nullable|int',
-            'room_key'    => 'nullable|int',
-            'guest_name'  => 'nullable|string',
-        ];
+        return $this->role === 'client';
     }
 
-    /**
-     * Assign guest to room after login
-     */
-    public function assignGuest(string $guestName)
+    public function isKitchen(): bool
     {
-        $this->guest_name = $guestName;
-        $this->guest_uuid = (string) \Illuminate\Support\Str::uuid();
-        $this->is_occupied = true;
-
-        return $this->save();
+        return $this->role === 'kitchen';
     }
 
-    /**
-     * Completely reset a room after order delivered/cancelled
-     */
-    public function resetRoom()
+    public function isBarista(): bool
     {
-        $this->guest_name = null;
-        $this->guest_uuid = null;
-        $this->is_occupied = false;
-
-        return $this->save();
+        return $this->role === 'barista';
     }
 
-     /**
-     * Assign login to kitchen staff
-     */
-    public function activateKitchenUser()
+    public function isAdmin(): bool
     {
-        $this->kitchenUser_uuid = (string) \Illuminate\Support\Str::uuid();
-        $this->is_active = true;
-
-        return $this->save();
+        return $this->role === 'admin';
     }
 
-    /**
-     * Logout kitchen user
-     */
-    public function deactivateKitchenUser()
-    {
-        $this->is_active = false;
-        $this->kitchenUser_uuid = null;
+    /* ===========================
+       Client (room) actions
+    ============================ */
 
-        return $this->save();
+    public function assignGuest(string $guestName): void
+    {
+        $this->update([
+            'name'        => $guestName,
+            'guest_uuid'  => (string) Str::uuid(),
+            'is_occupied' => true,
+        ]);
+    }
+
+    public function resetRoom(): void
+    {
+        $this->update([
+            'name'        => null,
+            'guest_uuid'  => null,
+            'is_occupied' => false,
+        ]);
+    }
+
+    /* ===========================
+       Staff actions
+    ============================ */
+
+    public function activateStaff(): void
+    {
+        $this->update([
+            'is_active' => true,
+        ]);
+    }
+
+    public function deactivateStaff(): void
+    {
+        $this->update([
+            'is_active' => false,
+        ]);
     }
 }
