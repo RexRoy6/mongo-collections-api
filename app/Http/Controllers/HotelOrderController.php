@@ -51,14 +51,14 @@ class HotelOrderController extends Controller
                     'message' => 'Only guests can create orders'
                 ], 403);
             }
-            if (!$user->is_occupied) {//ver como usarlo para los baristas tambien
+            if (!$user->is_occupied) { //ver como usarlo para los baristas tambien
                 return response()->json([
                     'error' => 'guest_not_active',
                     'message' => 'Guest is not currently checked in'
                 ], 403);
             }
             // 4) Determine menu_key (use provided or default)
-            $menuKey = $validated['menu_key'] ?? 'menu_cafe';//aqui cambiarloo, reoq eue ese menu no existe ya
+            $menuKey = $validated['menu_key'] ?? 'menu_cafe'; //aqui cambiarloo, reoq eue ese menu no existe ya
 
             // 5) Load menu WITHIN THIS BUSINESS
             $menu = Menu::where('business_uuid', $business->uuid)
@@ -152,7 +152,7 @@ class HotelOrderController extends Controller
             // 9) Create order WITH BUSINESS CONTEXT
             $orderData = [
                 'business_uuid' => $business->uuid,
-                'channel' => 'hotel-app',//aqui cambairlo
+                'channel' => 'hotel-app', //aqui cambairlo
                 'created_by' => $user->uuid,
                 'solicitud' => $finalSolicitud,
                 'current_status' => 'created',
@@ -244,7 +244,7 @@ class HotelOrderController extends Controller
                 'meta' => [
                     'total' => $orders->count(),
                     'user_uuid' =>  $userUuid,
-                    'role' =>$user->role
+                    'role' => $user->role
                 ]
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -274,7 +274,7 @@ class HotelOrderController extends Controller
                 'order_uuid' => 'required|uuid',
                 'notes' => 'nullable|string'
             ]);
-              // Get authenticated user (guest)
+            // Get authenticated user (guest)
             $user = $request->user();
             //dd($user);
 
@@ -340,14 +340,29 @@ class HotelOrderController extends Controller
     public function listOrders(Request $request)
     {
         try {
+            //aqui debo asegurarme que. suna ruta que role la pueden ver los de la cocina con lo tokens
             // Get business context
             $business = $request->get('current_business');
+            $user = $request->user();
 
             if (!$business) {
                 return response()->json([
                     'error' => 'business_context_required',
                     'message' => 'Business context is required'
                 ], 400);
+            }
+            if ($user->is_active != true) {
+                return response()->json([
+                    'error' => 'unauthorized',
+                    'message' => 'staff not active'
+                ], 401);
+            }
+
+            if (!$user || !in_array($user->role, ['kitchen', 'barista'])) {
+                return response()->json([
+                    'error' => 'unauthorized',
+                    'message' => 'Only kitchen or barista users are allowed'
+                ], 401);
             }
 
             // Get orders for this business (today's orders)
@@ -388,6 +403,7 @@ class HotelOrderController extends Controller
         try {
             // Get business context
             $business = $request->get('current_business');
+            $user = $request->user();
 
             if (!$business) {
                 return response()->json([
@@ -401,6 +417,20 @@ class HotelOrderController extends Controller
                 'status' => 'required|string|in:created,pending,preparing,ready,delivered,cancelled',
                 'notes' => 'nullable|string'
             ]);
+            //chocl only kitchen and baristas con do this step
+              if ($user->is_active != true) {
+                return response()->json([
+                    'error' => 'unauthorized',
+                    'message' => 'staff not active'
+                ], 401);
+            }
+
+            if (!$user || !in_array($user->role, ['kitchen', 'barista'])) {
+                return response()->json([
+                    'error' => 'unauthorized',
+                    'message' => 'Only kitchen or barista users are allowed'
+                ], 401);
+            }
 
             // Find order WITHIN THIS BUSINESS
             $order = Order::where('business_uuid', $business->uuid)
@@ -416,9 +446,9 @@ class HotelOrderController extends Controller
 
             // Update order status (kitchen role)
             $success = $order->updateStatus(
-                role: 'kitchen',
+                role: $user->role,
                 newStatus: $validated['status'],
-                notes: $validated['notes'] ?? "Status changed to {$validated['status']} by kitchen"
+                notes: $validated['notes'] ?? "Status changed to {$validated['status']} $user->role"
             );
 
             if (!$success) {

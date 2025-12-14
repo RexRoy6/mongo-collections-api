@@ -22,7 +22,7 @@ Route::middleware(['api.solicitudes'])->group(function () {
         return response()->json([
             'status' => 'healthy',
             'timestamp' => now()->toIso8601String(),
-            'version' => '1.0.0'
+            'version' => '1.0.1'
         ]);
     });
 
