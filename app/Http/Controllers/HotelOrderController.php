@@ -213,6 +213,7 @@ class HotelOrderController extends Controller
 
             // Get authenticated user (guest)
             $user = $request->user();
+            //dd($user);
 
             if (!$user) {
                 return response()->json([
@@ -222,18 +223,18 @@ class HotelOrderController extends Controller
             }
 
             // Get guest_uuid from token (assuming it's stored in token)
-            $guestUuid = $user->guest_uuid ?? $request->input('guest_uuid');
+            $userUuid = $user->uuid;
 
-            if (!$guestUuid) {
+            if (!$userUuid) {
                 return response()->json([
-                    'error' => 'guest_uuid_required',
+                    'error' => 'user_uuid_required',
                     'message' => 'Guest UUID is required'
                 ], 400);
             }
 
             // Get orders for this guest within this business
             $orders = Order::where('business_uuid', $business->uuid)
-                ->where('created_by', $guestUuid)
+                ->where('created_by',  $userUuid)
                 ->orderBy('created_at', 'desc')
                 ->get();
 
@@ -242,7 +243,8 @@ class HotelOrderController extends Controller
                 'business' => $business->getPublicInfo(),
                 'meta' => [
                     'total' => $orders->count(),
-                    'guest_uuid' => $guestUuid
+                    'user_uuid' =>  $userUuid,
+                    'role' =>$user->role
                 ]
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
