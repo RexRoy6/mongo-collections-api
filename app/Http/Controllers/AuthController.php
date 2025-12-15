@@ -28,7 +28,7 @@ class AuthController extends Controller
             $data = $request->validate([
                 'room_number' => 'required|integer',
                 'room_key'    => 'required|integer',
-                'guest_name'  => 'nullable|string',
+                'guest_name'  => 'required|string',
             ]);
 
             $room = User::forCurrentBusiness()
@@ -64,7 +64,7 @@ class AuthController extends Controller
                 'business'     => $business->getPublicInfo(),
                 'user' => [
                     'role'        => 'client',
-                    'guest_name'  => $room->guest_name,
+                    'guest_name'  => $room->name,
                     'room_number' => $room->room_number,
                 ]
             ]);
