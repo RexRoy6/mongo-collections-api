@@ -153,13 +153,13 @@ class HotelOrderController extends Controller
             $orderData = [
                 'business_uuid' => $business->uuid,
                 'channel' => 'hotel-app', //aqui cambairlo
-                'created_by' => $user->uuid,
+                'created_by' => $user->guest_uuid,
                 'solicitud' => $finalSolicitud,
                 'current_status' => 'created',
                 'status_history' => [[
                     'status' => 'created',
                     'updated_at' => now()->toIso8601String(),
-                    'updated_by' => $user->uuid,
+                    'updated_by' => $user->guest_uuid,
                     'notes' => $validated['solicitud']['note'] ?? 'Order placed'
                 ]]
             ];
@@ -174,7 +174,7 @@ class HotelOrderController extends Controller
                 'guest' => [
                     'name' => $user->name,
                     'room' => $user->room_number,
-                    'uuid' => $user->uuid
+                    'uuid' => $user->guest_uuid
                 ]
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -188,7 +188,7 @@ class HotelOrderController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'business_uuid' => $business->uuid ?? null,
-                'guest_uuid' => $user->uuid ?? null
+                'guest_uuid' => $user->guest_uuid ?? null
             ]);
 
             return response()->json([
@@ -223,7 +223,7 @@ class HotelOrderController extends Controller
             }
 
             // Get guest_uuid from token (assuming it's stored in token)
-            $userUuid = $user->uuid;
+            $userUuid = $user->guest_uuid;//era uuid nada mas
 
             if (!$userUuid) {
                 return response()->json([
