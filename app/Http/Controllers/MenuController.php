@@ -16,11 +16,14 @@ class MenuController extends Controller
     public function getMenuByKey(Request $request)
     {
     try{ 
-        $validated = $request->validate([
-        'menu_key' => 'required|string'
-    ]);
-        $menu = Menu::forCurrentBusiness()
-        ->where('menu_key',$validated['menu_key'])->first();
+    //     $validated = $request->validate([
+    //     'menu_key' => 'required|string'
+    // ]);
+        // $menu = Menu::forCurrentBusiness()
+        // ->where('menu_key',$validated['menu_key'])->first();
+
+        $menu = Menu::forCurrentBusiness()->first();
+
 
         if (!$menu) {
             return response()->json(['message' => 'Menu not found'], 404);
