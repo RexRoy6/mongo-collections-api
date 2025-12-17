@@ -25,7 +25,7 @@ class HotelOrderController extends Controller
 
             // 2) Validate incoming payload
             $validated = $request->validate([
-                'menu_key' => 'nullable|string',
+               // 'menu_key' => 'nullable|string',
                 'solicitud' => 'required|array',
                 'solicitud.items' => 'required|array|min:1',
                 'solicitud.note' => 'nullable|string',
@@ -58,12 +58,14 @@ class HotelOrderController extends Controller
                 ], 403);
             }
             // 4) Determine menu_key (use provided or default)
-            $menuKey = $validated['menu_key'] ?? 'menu_cafe'; //aqui cambiarloo, reoq eue ese menu no existe ya
-
+            //$menuKey = $validated['menu_key'] ?? 'menu_cafe'; //aqui cambiarloo, reoq eue ese menu no existe ya
             // 5) Load menu WITHIN THIS BUSINESS
             $menu = Menu::where('business_uuid', $business->uuid)
-                ->where('menu_key', $menuKey)
                 ->first();
+
+            $menuKey  = $menu->menu_key;
+
+            
 
             if (!$menu) {
                 return response()->json([
