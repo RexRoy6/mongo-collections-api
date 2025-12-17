@@ -14,6 +14,8 @@ return [
     | and production domains which access your API via a frontend SPA.
     |
     */
+    'connection' => env('SANCTUM_CONNECTION', 'sqlite'),
+
 
     'stateful' => [],
 

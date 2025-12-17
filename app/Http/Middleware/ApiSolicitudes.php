@@ -15,12 +15,18 @@ class ApiSolicitudes
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $apiKeyF = $request->header('API-KEY') || $request->header('x-api-key');
+        // Get API key from either header
+        $apiKey = $request->header('API-KEY') ?? $request->header('x-api-key');
         $envApiKey = env('API_KEY');
-        if ($apiKeyF == $envApiKey) {
-            return $next($request);
+        
+        // Check if API key is provided and matches
+        if (!$apiKey || $apiKey !== $envApiKey) {
+            return response()->json([
+                'error' => 'invalid_api_key',
+                'message' => 'API key inválida o no proporcionada'
+            ], 401);
         }
 
-        return response($content = 'API key inválida',$status =  401);
+        return $next($request);
     }
 }
