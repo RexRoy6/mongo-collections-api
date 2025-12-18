@@ -107,12 +107,39 @@ class User extends BaseMongoModel
         ]);
     }
 
-public function issueToken(Business $business, string $tokenName = 'api-token')
-{
-    return $this->createToken($tokenName, [
-        'role:' . $this->role,
-        'business:' . $business->business_key,
-    ])->plainTextToken;
-}
+    public function issueToken(Business $business, string $tokenName = 'api-token')
+    {
+        return $this->createToken(
+            $tokenName,
+            $this->abilitiesForRole()
+        )->plainTextToken;
+    }
 
+    protected function abilitiesForRole(): array
+    {
+        return match ($this->role) {
+            'client' => [
+                'orders:create',
+                'orders:read',
+                'orders:cancel',
+            ],
+
+            'kitchen' => [
+                'orders:read',
+                'orders:update',
+            ],
+
+            'barista' => [
+                'orders:create',
+                'orders:read',
+                'orders:update',
+            ],
+
+            'admin' => [
+                'orders:read',
+            ],
+
+            default => [],
+        };
+    }
 }
