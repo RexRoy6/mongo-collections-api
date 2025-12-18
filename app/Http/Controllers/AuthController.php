@@ -175,8 +175,6 @@ class AuthController extends Controller
                 'staff_number' => 'required|int',
                 'staff_key'      => 'required|int',
             ]);
-            //dd($business , $validated);
-
 
             //enocntrar al staff
 
@@ -184,7 +182,6 @@ class AuthController extends Controller
                 ->whereIn('role', ['kitchen', 'barista', 'admin'])
                 ->where('staff_number', $validated['staff_number'])
                 ->first();
-
 
 
         if ($staff->is_active == false) {
