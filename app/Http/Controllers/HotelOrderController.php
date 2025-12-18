@@ -38,6 +38,12 @@ class HotelOrderController extends Controller
                     'message' => 'Authentication required'
                 ], 401);
             }
+            if ($user->is_active != true) {
+                return response()->json([
+                    'error' => 'unauthorized',
+                    'message' => 'user not active'
+                ], 401);
+            }
 
             if ($user->business_uuid !== $business->uuid) {
                 return response()->json([
@@ -212,6 +218,13 @@ class HotelOrderController extends Controller
                     'message' => 'Authentication required'
                 ], 401);
             }
+   
+            if ($user->is_active != true) {
+                return response()->json([
+                    'error' => 'unauthorized',
+                    'message' => 'user not active'
+                ], 401);
+            }
 
             // Get guest_uuid from token (assuming it's stored in token)
             if ($user->isClient()) {
@@ -272,6 +285,12 @@ class HotelOrderController extends Controller
                     'message' => 'Authentication required'
                 ], 401);
             }
+            if ($user->is_active != true) {
+                return response()->json([
+                    'error' => 'unauthorized',
+                    'message' => 'user not active'
+                ], 401);
+            }
 
             // Find order WITHIN THIS BUSINESS
             $order = Order::where('business_uuid', $business->uuid)
@@ -287,7 +306,7 @@ class HotelOrderController extends Controller
             }
 
             // Check if order can be cancelled
-            if (!$order->canTransition('client', 'cancelled')) {
+            if (!$order->canTransition($user->role, 'cancelled')) {
                 return response()->json([
                     'error' => 'invalid_status_transition',
                     'message' => 'Order cannot be cancelled in its current status',
@@ -297,7 +316,7 @@ class HotelOrderController extends Controller
 
             // Update order status
             $success = $order->updateStatus(
-                role: 'client',
+                role: $user->role,
                 newStatus: 'cancelled',
                 notes: $validated['notes'] ?? 'Cancelled by guest'
             );
@@ -346,12 +365,7 @@ class HotelOrderController extends Controller
                 ], 401);
             }
 
-            if (!$user || !in_array($user->role, ['kitchen', 'barista'])) {
-                return response()->json([
-                    'error' => 'unauthorized',
-                    'message' => 'Only kitchen or barista users are allowed'
-                ], 401);
-            }
+          
 
             // Get orders for this business (today's orders)
             $orders = Order::where('business_uuid', $business->uuid)
@@ -409,14 +423,7 @@ class HotelOrderController extends Controller
             if ($user->is_active != true) {
                 return response()->json([
                     'error' => 'unauthorized',
-                    'message' => 'staff not active'
-                ], 401);
-            }
-
-            if (!$user || !in_array($user->role, ['kitchen', 'barista'])) {
-                return response()->json([
-                    'error' => 'unauthorized',
-                    'message' => 'Only kitchen or barista users are allowed'
+                    'message' => 'user not active'
                 ], 401);
             }
 
