@@ -132,8 +132,17 @@ class AuthController extends Controller
                 ], 403);
             }
 
-            $user->is_active = true;
+
+            if ($user->is_active == true) {
+                return response()->json([
+                    'error' => 'already_logged_in',
+                    'message' => 'staff user already logged in'
+                ], 422);
+            }
+
             $user->save();
+            #ahora si activarlo lnene
+            $user->activateStaff();
 
             $token = $user->issueToken($business, 'staff-token');
             //seria buena idea que regresara de que business pertenece
@@ -184,43 +193,41 @@ class AuthController extends Controller
                 ->first();
 
 
-        if ($staff->is_active == false) {
+            if ($staff->is_active == false) {
+                return response()->json([
+                    'error' => 'already_logged_out',
+                    'message' => 'staff user already logged out'
+                ], 422);
+            }
+
+
+            if ($staff->staff_key !== $validated['staff_key']) {
+                return response()->json([
+                    'error' => 'invalid_key',
+                    'message' => 'Invalid staff user key'
+                ], 403);
+            }
+            if (!$staff) {
+                return response()->json([
+                    'error' => 'staff_user_not_found',
+                    'message' => 'staff user not found in this business'
+                ], 404);
+            }
+
+            #ahora si desactivarlo lnene
+            $staff->deactivateStaff();
+
             return response()->json([
-                'error' => 'already_logged_out',
-                'message' => 'staff user already logged out'
-            ], 422);
-        }
-
-
-        if ($staff->staff_key !== $validated['staff_key']) {
-            return response()->json([
-                'error' => 'invalid_key',
-                'message' => 'Invalid staff user key'
-            ], 403);
-        }
-           if (!$staff) {
-            return response()->json([
-                'error' => 'staff_user_not_found',
-                'message' => 'staff user not found in this business'
-            ], 404);
-        }
-
-        #ahora si desactivarlo lnene
-         $staff->deactivateStaff();
-
-         return response()->json([
-            'success' => true,
-            'message' => 'staff user logged out successfully',
-            'business' => $business->getPublicInfo(),
-            'staff' => [
-                'number_staff_Number' => $staff->staff_number,
-                'name_staff' => $staff->name,
-                'is_active' => $staff->is_active,
-                'role' => $staff->role
-            ]
-        ], 200);
-
-
+                'success' => true,
+                'message' => 'staff user logged out successfully',
+                'business' => $business->getPublicInfo(),
+                'staff' => [
+                    'number_staff_Number' => $staff->staff_number,
+                    'name_staff' => $staff->name,
+                    'is_active' => $staff->is_active,
+                    'role' => $staff->role
+                ]
+            ], 200);
         } catch (\Exception $e) {
             Log::error('Error in log_inuser staff: ' . $e->getMessage());
             return response()->json([
