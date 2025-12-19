@@ -59,7 +59,10 @@ class Order extends BaseMongoModel
             'created'   => ['cancelled'],
         ],
         'barista' => [
-            'created'   => ['cancelled'],
+            'created'   => ['pending', 'preparing', 'cancelled'],
+            'pending'   => ['preparing', 'cancelled'],
+            'preparing' => ['ready', 'cancelled'],
+            'ready'     => ['delivered'],
         ],
 
         'kitchen' => [
