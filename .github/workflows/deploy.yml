@@ -54,8 +54,7 @@ jobs:
         mkdir -p storage/framework/sessions
         mkdir -p storage/logs
 
-        sudo chown -R www-data:www-data storage bootstrap/cache
-        sudo chmod -R 775 storage bootstrap/cache
+        chmod -R 775 storage bootstrap/cache
 
         ln -nfs ../../.env .env
         ln -nfs ../../storage/app storage/app
@@ -63,6 +62,11 @@ jobs:
         ln -nfs ../../storage/logs storage/logs
 
         cd /opt/api-mongo
+        if [ ! -d "releases/${COMMIT_SHORT_SHA}" ]; then
+          echo "❌ Release directory missing"
+          exit 1
+        fi
+
         ln -nfs releases/${COMMIT_SHORT_SHA} current
 
         cd current
