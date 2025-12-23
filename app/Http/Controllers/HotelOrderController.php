@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\User;
 use App\Models\Order;
 use App\Models\Menu;
 use Illuminate\Support\Facades\Log;
@@ -29,6 +28,7 @@ class HotelOrderController extends Controller
                 'solicitud' => 'required|array',
                 'solicitud.items' => 'required|array|min:1',
                 'solicitud.note' => 'nullable|string',
+                'solicitud.name' => 'nullable|string|max:255',
                 'solicitud.currency' => 'required|string|in:mxn,usd',
             ]);
             $user = $request->user();
@@ -150,7 +150,7 @@ class HotelOrderController extends Controller
             $orderData = [
                 'business_uuid' => $business->uuid,
                 'channel' => 'hotel-app', //aqui cambairlo
-                'created_by' => $user->guest_uuid,
+                'created_by' => isset($user->guest_uuid) ? $user->guest_uuid: $user->staff_number, //aqui depende si lo hace hotel o barista
                 'solicitud' => $finalSolicitud,
                 'current_status' => 'created',
                 'status_history' => [[
@@ -160,6 +160,7 @@ class HotelOrderController extends Controller
                     'notes' => $validated['solicitud']['note'] ?? 'Order placed'
                 ]]
             ];
+            dd($orderData);
 
             $order = Order::create($orderData);
 
