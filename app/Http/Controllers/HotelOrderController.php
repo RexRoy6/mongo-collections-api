@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\User;
 use App\Models\Order;
 use App\Models\Menu;
 use Illuminate\Support\Facades\Log;
@@ -29,6 +28,7 @@ class HotelOrderController extends Controller
                 'solicitud' => 'required|array',
                 'solicitud.items' => 'required|array|min:1',
                 'solicitud.note' => 'nullable|string',
+                'solicitud.name' => 'nullable|string|max:255',
                 'solicitud.currency' => 'required|string|in:mxn,usd',
             ]);
             $user = $request->user();
@@ -51,7 +51,7 @@ class HotelOrderController extends Controller
                     'message' => 'User does not belong to this business'
                 ], 403);
             }
-           
+
             // 4) Determine menu_key (use provided or default)
             //$menuKey = $validated['menu_key'] ?? 'menu_cafe'; //aqui cambiarloo, reoq eue ese menu no existe ya
             // 5) Load menu WITHIN THIS BUSINESS
@@ -150,7 +150,7 @@ class HotelOrderController extends Controller
             $orderData = [
                 'business_uuid' => $business->uuid,
                 'channel' => 'hotel-app', //aqui cambairlo
-                'created_by' => $user->guest_uuid,
+                'created_by' => isset($user->guest_uuid) ? $user->guest_uuid : $user->staff_number, //aqui depende si lo hace hotel o barista
                 'solicitud' => $finalSolicitud,
                 'current_status' => 'created',
                 'status_history' => [[
@@ -160,6 +160,7 @@ class HotelOrderController extends Controller
                     'notes' => $validated['solicitud']['note'] ?? 'Order placed'
                 ]]
             ];
+            //dd($orderData);
 
             $order = Order::create($orderData);
 
@@ -218,7 +219,7 @@ class HotelOrderController extends Controller
                     'message' => 'Authentication required'
                 ], 401);
             }
-   
+
             if ($user->is_active != true) {
                 return response()->json([
                     'error' => 'unauthorized',
@@ -365,7 +366,7 @@ class HotelOrderController extends Controller
                 ], 401);
             }
 
-          
+
 
             // Get orders for this business (today's orders)
             $orders = Order::where('business_uuid', $business->uuid)
@@ -468,6 +469,134 @@ class HotelOrderController extends Controller
                 'message' => 'Missing or invalid parameters',
                 'errors' => $e->errors()
             ], 400);
+        }
+    }
+
+    public function updateOrderItems(Request $request)
+    {
+        try {
+            $business = $request->get('current_business');
+            $user = $request->user();
+
+            if (!$business) {
+                return response()->json([
+                    'error' => 'business_context_required',
+                    'message' => 'Business context is required'
+                ], 400);
+            }
+
+            if (!$user || !$user->is_active) {
+                return response()->json([
+                    'error' => 'unauthorized',
+                    'message' => 'User not active or unauthenticated'
+                ], 401);
+            }
+
+            $validated = $request->validate([
+                'order_uuid' => 'required|uuid',
+                'items' => 'required|array|min:1',
+                'items.*.name' => 'required|string',
+                'items.*.qty' => 'nullable|integer|min:1',
+                'note' => 'nullable|string',
+            ]);
+
+            // Find order in business
+            $order = Order::where('business_uuid', $business->uuid)
+                ->where('uuid', $validated['order_uuid'])
+                ->first();
+
+            if (!$order) {
+                return response()->json([
+                    'error' => 'order_not_found',
+                    'message' => 'Order not found in this business'
+                ], 404);
+            }
+
+            // Check allowed statuses
+            $editableStatuses = ['created', 'pending', 'preparing', 'ready'];
+            if (!in_array($order->current_status, $editableStatuses)) {
+                return response()->json([
+                    'error' => 'order_locked',
+                    'message' => 'Order items can no longer be modified',
+                    'current_status' => $order->current_status
+                ], 422);
+            }
+
+            // Load menu
+            $menu = Menu::where('business_uuid', $business->uuid)->first();
+            if (!$menu) {
+                return response()->json([
+                    'error' => 'menu_not_found',
+                    'message' => 'Menu not found'
+                ], 404);
+            }
+
+            // Build menu lookup
+            $lookup = [];
+            foreach ($menu->items as $mi) {
+                $lookup[strtolower($mi['name'])] = $mi;
+            }
+
+            // Rebuild items & totals
+            $orderItems = [];
+            $totalCents = 0;
+
+            foreach ($validated['items'] as $idx => $item) {
+                $key = strtolower($item['name']);
+
+                if (!isset($lookup[$key])) {
+                    return response()->json([
+                        'error' => 'item_not_in_menu',
+                        'item' => $item['name'],
+                    ], 422);
+                }
+
+                $qty = isset($item['qty']) ? (int) $item['qty'] : 1;
+                $menuItem = $lookup[$key];
+
+                $priceCents = (int) round($menuItem['price'] * 100);
+                $lineTotalCents = $priceCents * $qty;
+                $totalCents += $lineTotalCents;
+
+                $orderItems[] = [
+                    'name' => $menuItem['name'],
+                    'qty' => $qty,
+                    'unit_price' => $menuItem['price'],
+                    'unit_price_cents' => $priceCents,
+                    'line_total' => $lineTotalCents / 100,
+                    'line_total_cents' => $lineTotalCents,
+                    'image' => $menuItem['image'] ?? null,
+                ];
+            }
+
+            // Update solicitud
+            $solicitud = $order->solicitud ?? [];
+
+            $solicitud['items'] = $orderItems;
+            $solicitud['total'] = $totalCents / 100;
+            $solicitud['total_cents'] = $totalCents;
+
+            $order->solicitud = $solicitud;
+            $order->save();
+
+
+            // Optional: add audit note to status history
+            $order->addStatus(
+                status: $order->current_status,
+                updatedBy: $user->role,
+                notes: $validated['note'] ?? 'Order items updated'
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order items updated successfully',
+                'order' => $order
+            ], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'error' => 'validation_error',
+                'errors' => $e->errors()
+            ], 422);
         }
     }
 }

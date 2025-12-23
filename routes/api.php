@@ -99,6 +99,14 @@ Route::middleware(['api.solicitudes'])->group(function () {
                 Route::put('/kitchen/update')
                     ->middleware('abilities:orders:update')
                     ->uses([HotelOrderController::class, 'updateOrderStatus']);
+
+                //update items:
+                Route::put('/kitchen/updateItems')
+                    ->middleware('abilities:orders:update')
+                    ->uses([HotelOrderController::class, 'updateOrderItems']);
+
+
+
             });
         });
     });
