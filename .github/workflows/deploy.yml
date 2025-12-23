@@ -96,7 +96,6 @@ jobs:
           echo "Deploy user:"
           whoami
 
-          #php -r "opcache_reset();"
           #sudo systemctl reload php8.2-fpm
           
           echo '✅ Laravel API deployed successfully! Release: ${COMMIT_SHORT_SHA}'
