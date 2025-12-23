@@ -55,10 +55,10 @@ jobs:
          sudo chown -R www-data:www-data storage bootstrap/cache
          sudo chmod -R 775 storage bootstrap/cache
 
-        ln -nfs ../../.env .env
-        ln -nfs ../../storage/app storage/app
-        ln -nfs ../../storage/framework storage/framework
-        ln -nfs ../../storage/logs storage/logs
+         ln -nfs ../../.env .env
+         ln -nfs ../../storage/app storage/app
+         ln -nfs ../../storage/framework storage/framework
+         ln -nfs ../../storage/logs storage/logs
 
          cd /opt/api-mongo
          ln -nfs releases/${COMMIT_SHORT_SHA} current
