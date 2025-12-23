@@ -7,7 +7,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -18,61 +18,62 @@ jobs:
         php-version: '8.2'
         extensions: mongodb
 
-    - name: Install dependencies
+    - name: Install dependencies (CI only)
       run: |
-        composer require mongodb/laravel-mongodb
-        composer install --prefer-dist --no-ansi --no-interaction --no-progress --no-scripts --no-dev --optimize-autoloader
+        composer install --prefer-dist --no-dev --no-interaction --optimize-autoloader
 
     - name: Deploy to VPS
       run: |
-       mkdir -p ~/.ssh
-       echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
-       chmod 600 ~/.ssh/deploy_key
-       ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+        mkdir -p ~/.ssh
+        echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+        chmod 600 ~/.ssh/deploy_key
+        ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
-       ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-         ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << 'EOF'
+        ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+        ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << 'EOF'
+        set -e
 
-         echo "Deploy user on VPS:"
-         whoami
+        echo "Deploy user on VPS:"
+        whoami
 
-         cd /opt/api-mongo
+        cd /opt/api-mongo
 
-         COMMIT_SHORT_SHA=${GITHUB_SHA:0:8}
+        COMMIT_SHORT_SHA=${GITHUB_SHA:0:8}
 
-         mkdir -p releases/${COMMIT_SHORT_SHA}
-         cd releases/${COMMIT_SHORT_SHA}
+        # Ensure clean release dir
+        rm -rf releases/${COMMIT_SHORT_SHA}
+        mkdir -p releases/${COMMIT_SHORT_SHA}
+        cd releases/${COMMIT_SHORT_SHA}
 
-         git clone https://github.com/${{ github.repository }} . --depth=1
-         composer install --no-dev --optimize-autoloader --no-interaction
+        git clone https://github.com/${{ github.repository }} . --depth=1
+        composer install --no-dev --optimize-autoloader --no-interaction
 
-         mkdir -p bootstrap/cache
-         mkdir -p storage/framework/views
-         mkdir -p storage/framework/cache
-         mkdir -p storage/framework/sessions
-         mkdir -p storage/logs
+        mkdir -p bootstrap/cache
+        mkdir -p storage/framework/views
+        mkdir -p storage/framework/cache
+        mkdir -p storage/framework/sessions
+        mkdir -p storage/logs
 
-         sudo chown -R www-data:www-data storage bootstrap/cache
-         sudo chmod -R 775 storage bootstrap/cache
+        sudo chown -R www-data:www-data storage bootstrap/cache
+        sudo chmod -R 775 storage bootstrap/cache
 
-         ln -nfs ../../.env .env
-         ln -nfs ../../storage/app storage/app
-         ln -nfs ../../storage/framework storage/framework
-         ln -nfs ../../storage/logs storage/logs
+        ln -nfs ../../.env .env
+        ln -nfs ../../storage/app storage/app
+        ln -nfs ../../storage/framework storage/framework
+        ln -nfs ../../storage/logs storage/logs
 
-         cd /opt/api-mongo
-         ln -nfs releases/${COMMIT_SHORT_SHA} current
+        cd /opt/api-mongo
+        ln -nfs releases/${COMMIT_SHORT_SHA} current
 
-         cd current
-         php artisan optimize:clear
-         php artisan config:cache
-         php artisan route:cache
-         php artisan view:cache
-         php artisan optimize
-         php artisan migrate
+        cd current
+        php artisan optimize:clear
+        php artisan config:cache
+        php artisan route:cache
+        php artisan view:cache
+        php artisan optimize
+        php artisan migrate --force
 
-         sudo systemctl reload php8.2-fpm
+        sudo systemctl reload php8.2-fpm
 
-         echo "✅ Deploy finished"
-
+        echo "✅ Deploy finished"
         EOF
