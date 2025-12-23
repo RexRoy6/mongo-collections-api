@@ -93,8 +93,8 @@ jobs:
           ls -1dt releases/* 2>/dev/null | tail -n +6 | xargs rm -rf
           
           # Reload PHP-FPM with sudo (this might still need passwordless sudo setup)
-          echo "Deploy user:"
-          whoami
+          echo "Deploy user: $(whoami)"
+
 
           #sudo systemctl reload php8.2-fpm
           
