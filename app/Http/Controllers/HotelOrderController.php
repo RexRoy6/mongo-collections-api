@@ -8,7 +8,7 @@ use App\Models\Menu;
 use Illuminate\Support\Facades\Log;
 use App\Events\OrderCreated;
 use App\Events\OrderCancelled;
-
+use App\Events\OrderStatusUpdated;
 class HotelOrderController extends Controller
 {
     public function create(Request $request)
@@ -167,6 +167,10 @@ class HotelOrderController extends Controller
             //send to event:
             OrderCreated::dispatch($order);
 
+            //test event
+            //Log::info('OrderCreated dispatched', ['order_id' => $order->id]);
+            //test event
+
 
             // 10) Return success response
             return response()->json([
@@ -282,7 +286,7 @@ class HotelOrderController extends Controller
             ]);
             // Get authenticated user (guest)
             $user = $request->user();
-            //dd($user);
+           // dd($user);
 
             if (!$user) {
                 return response()->json([
@@ -290,10 +294,10 @@ class HotelOrderController extends Controller
                     'message' => 'Authentication required'
                 ], 401);
             }
-            if ($user->is_active != true) {
+            if ($user->is_occupied != true) {
                 return response()->json([
                     'error' => 'unauthorized',
-                    'message' => 'user not active'
+                    'message' => 'user not active/room not occupied'
                 ], 401);
             }
 
@@ -334,6 +338,9 @@ class HotelOrderController extends Controller
             }
                //add event here
             OrderCancelled::dispatch($order);
+             //test event
+            //Log::info('OrderCancelled dispatched', ['order_id' => $order->id]);
+            //test event
 
             return response()->json([
                 'success' => true,
@@ -461,6 +468,11 @@ class HotelOrderController extends Controller
                     'attempted_status' => $validated['status']
                 ], 422);
             }
+            //add update order event
+             OrderStatusUpdated::dispatch($order);
+             //test event
+            //Log::info('OrderStatusUpdated dispatched', ['order_id' => $order->id]);
+            //test event
 
             return response()->json([
                 'success' => true,
