@@ -6,7 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\Order;
 use App\Models\Menu;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
+use App\Events\OrderCreated;
+
 
 class HotelOrderController extends Controller
 {
@@ -163,6 +164,9 @@ class HotelOrderController extends Controller
             //dd($orderData);
 
             $order = Order::create($orderData);
+            //send to event:
+            OrderCreated::dispatch($order);
+
 
             // 10) Return success response
             return response()->json([

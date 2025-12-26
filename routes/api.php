@@ -100,7 +100,7 @@ Route::middleware(['api.solicitudes'])->group(function () {
                     ->middleware('abilities:orders:update')
                     ->uses([HotelOrderController::class, 'updateOrderStatus']);
 
-                //update items:
+                //update items/. only for barista:
                 Route::put('/kitchen/updateItems')
                     ->middleware('abilities:orders:update')
                     ->uses([HotelOrderController::class, 'updateOrderItems']);
