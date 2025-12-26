@@ -12,6 +12,8 @@ use App\Http\Controllers\MenuController;
 use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\BusinessIdentificationController;
 use App\Http\Controllers\AuthController;
+use App\Events\OrderCreated;
+
 
 // ========== ROUTES WITH API KEY VALIDATION ==========
 // ALL routes go through ApiSolicitudes first
@@ -25,6 +27,11 @@ Route::middleware(['api.solicitudes'])->group(function () {
             'version' => '1.0.1'
         ]);
     });
+
+    Route::get('/test-broadcast', function () {
+    OrderCreated::dispatch(\App\Models\Order::first());
+    return 'broadcast sent';
+});
 
     // Business identification (public, but needs API key)
     Route::post('/identify-business', [BusinessIdentificationController::class, 'identify']);
