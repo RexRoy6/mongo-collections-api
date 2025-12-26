@@ -7,7 +7,7 @@ use App\Models\Order;
 use App\Models\Menu;
 use Illuminate\Support\Facades\Log;
 use App\Events\OrderCreated;
-
+use App\Events\OrderCancelled;
 
 class HotelOrderController extends Controller
 {
@@ -332,6 +332,8 @@ class HotelOrderController extends Controller
                     'message' => 'Failed to update order status'
                 ], 500);
             }
+               //add event here
+            OrderCancelled::dispatch($order);
 
             return response()->json([
                 'success' => true,
