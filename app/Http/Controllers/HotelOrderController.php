@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 use App\Events\OrderCreated;
 use App\Events\OrderCancelled;
 use App\Events\OrderStatusUpdated;
+
 class HotelOrderController extends Controller
 {
     public function create(Request $request)
@@ -39,49 +40,44 @@ class HotelOrderController extends Controller
                     'message' => 'Authentication required'
                 ], 401);
             }
-            //dd($user->is_occupied);
-
             //if block para decidir mensaje en base a rol
-            if($user->role == 'barista'){
+            if ($user->role == 'client') {
+
+                if ($user->is_occupied != true) {
+                    return response()->json([
+                        'error' => 'unauthorized',
+                        'message' => 'user not active'
+                    ], 401);
+                }
+            } else {
                 if ($user->is_active != true) {
-                return response()->json([
-                    'error' => 'unauthorized',
-                    'message' => 'user not active'
-                ], 401);
-            }
-
-
-            }elseif($user->role == 'client'){
-
-                 if ($user->is_occupied != true) {
-                return response()->json([
-                    'error' => 'unauthorized',
-                    'message' => 'user not active'
-                ], 401);
-            }
-
+                    return response()->json([
+                        'error' => 'unauthorized',
+                        'message' => 'user not active'
+                    ], 401);
+                }
             }
 
             //hotel client guest
-    //            "is_occupied" => true
-    // "is_active" => false
-    // "business_uuid" => "00b2c552-e9d0-4ed8-936e-7931d3713fd4"
-    // "role" => "client"
-    // "room_number" => 101
-    // "room_key" => 1234
-    // "uuid" => "04caac05-5418-4b72-96b9-f15a086e12f7"
+            //            "is_occupied" => true
+            // "is_active" => false
+            // "business_uuid" => "00b2c552-e9d0-4ed8-936e-7931d3713fd4"
+            // "role" => "client"
+            // "room_number" => 101
+            // "room_key" => 1234
+            // "uuid" => "04caac05-5418-4b72-96b9-f15a086e12f7"
 
 
-    //barista
-    //  "is_occupied" => false
-    // "is_active" => true
-    // "business_uuid" => "27e3d113-485f-4b2a-9cd4-7dc350a6a6e8"
-    // "role" => "barista"
-    // "name" => "Rodrigo Aguilera"
-    // "staff_number" => 2
-    // "staff_key" => 6567061339
+            //barista
+            //  "is_occupied" => false
+            // "is_active" => true
+            // "business_uuid" => "27e3d113-485f-4b2a-9cd4-7dc350a6a6e8"
+            // "role" => "barista"
+            // "name" => "Rodrigo Aguilera"
+            // "staff_number" => 2
+            // "staff_key" => 6567061339
 
-            
+
 
             if ($user->business_uuid !== $business->uuid) {
                 return response()->json([
@@ -323,7 +319,7 @@ class HotelOrderController extends Controller
             ]);
             // Get authenticated user (guest)
             $user = $request->user();
-           // dd($user);
+            // dd($user);
 
             if (!$user) {
                 return response()->json([
@@ -373,9 +369,9 @@ class HotelOrderController extends Controller
                     'message' => 'Failed to update order status'
                 ], 500);
             }
-               //add event here
+            //add event here
             OrderCancelled::dispatch($order);
-             //test event
+            //test event
             //Log::info('OrderCancelled dispatched', ['order_id' => $order->id]);
             //test event
 
@@ -506,8 +502,8 @@ class HotelOrderController extends Controller
                 ], 422);
             }
             //add update order event
-             OrderStatusUpdated::dispatch($order);
-             //test event
+            OrderStatusUpdated::dispatch($order);
+            //test event
             //Log::info('OrderStatusUpdated dispatched', ['order_id' => $order->id]);
             //test event
 
