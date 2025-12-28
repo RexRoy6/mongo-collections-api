@@ -39,12 +39,49 @@ class HotelOrderController extends Controller
                     'message' => 'Authentication required'
                 ], 401);
             }
-            if ($user->is_active != true) {
+            //dd($user->is_occupied);
+
+            //if block para decidir mensaje en base a rol
+            if($user->role == 'barista'){
+                if ($user->is_active != true) {
                 return response()->json([
                     'error' => 'unauthorized',
                     'message' => 'user not active'
                 ], 401);
             }
+
+
+            }elseif($user->role == 'client'){
+
+                 if ($user->is_occupied != true) {
+                return response()->json([
+                    'error' => 'unauthorized',
+                    'message' => 'user not active'
+                ], 401);
+            }
+
+            }
+
+            //hotel client guest
+    //            "is_occupied" => true
+    // "is_active" => false
+    // "business_uuid" => "00b2c552-e9d0-4ed8-936e-7931d3713fd4"
+    // "role" => "client"
+    // "room_number" => 101
+    // "room_key" => 1234
+    // "uuid" => "04caac05-5418-4b72-96b9-f15a086e12f7"
+
+
+    //barista
+    //  "is_occupied" => false
+    // "is_active" => true
+    // "business_uuid" => "27e3d113-485f-4b2a-9cd4-7dc350a6a6e8"
+    // "role" => "barista"
+    // "name" => "Rodrigo Aguilera"
+    // "staff_number" => 2
+    // "staff_key" => 6567061339
+
+            
 
             if ($user->business_uuid !== $business->uuid) {
                 return response()->json([
