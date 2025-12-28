@@ -60,7 +60,7 @@ jobs:
         mkdir -p storage/logs
         mkdir -p bootstrap/cache
 
-        chown -R www-data:www-data \$NEW_RELEASE
+        #chown -R www-data:www-data \$NEW_RELEASE
         chmod -R 775 storage bootstrap/cache
 
         php artisan migrate --force
