@@ -338,11 +338,24 @@ class HotelOrderController extends Controller
                     'message' => 'Authentication required'
                 ], 401);
             }
-            if ($user->is_occupied != true) {
-                return response()->json([
-                    'error' => 'unauthorized',
-                    'message' => 'user not active/room not occupied'
-                ], 401);
+
+
+               //if block para decidir mensaje en base a rol
+            if ($user->role == 'client') {
+
+                if ($user->is_occupied != true) {
+                    return response()->json([
+                        'error' => 'unauthorized',
+                        'message' => 'user not active'
+                    ], 401);
+                }
+            } else {
+                if ($user->is_active != true) {
+                    return response()->json([
+                        'error' => 'unauthorized',
+                        'message' => 'user not active'
+                    ], 401);
+                }
             }
 
             // Find order WITHIN THIS BUSINESS
