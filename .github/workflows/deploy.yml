@@ -7,7 +7,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -18,81 +18,64 @@ jobs:
         php-version: '8.2'
         extensions: mongodb
 
-    - name: Install dependencies
-      run: |
-        composer require mongodb/laravel-mongodb
-        composer install --prefer-dist --no-ansi --no-interaction --no-progress --no-scripts --no-dev --optimize-autoloader
-
     - name: Deploy to VPS
       run: |
         mkdir -p ~/.ssh
         echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
         chmod 600 ~/.ssh/deploy_key
         ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
-        
+
         COMMIT_SHORT_SHA=${GITHUB_SHA:0:8}
-        
-        ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} "
-          cd /opt/api-mongo
-          
-          # Create new release directory
-          mkdir -p releases/${COMMIT_SHORT_SHA}
-          cd releases/${COMMIT_SHORT_SHA}
-          
-          # Clone the repository
-          git clone https://github.com/${{ github.repository }} . --depth=1
-          
-          # Install dependencies
-          composer install --no-dev --optimize-autoloader --no-interaction
-          
-          # Create necessary directories
-          mkdir -p bootstrap/cache storage/framework/views
-          # Create bootstrap/cache in the new release
-          mkdir -p bootstrap/cache
+        REPO=${{ github.repository }}
 
-          # Set correct ownership and permissions
-          sudo chown -R www-data:www-data bootstrap/cache
-          sudo chmod -R 775 bootstrap/cache
+        ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+        ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << EOF
+        set -e
 
-          # Create necessary Laravel directories
-          mkdir -p bootstrap/cache
-          mkdir -p storage/framework/views
-          mkdir -p storage/framework/cache
-          mkdir -p storage/framework/sessions
-          mkdir -p storage/logs
+        APP_DIR=/opt/api-mongo
+        RELEASES_DIR=\$APP_DIR/releases
+        COMMIT=$COMMIT_SHORT_SHA
+        NEW_RELEASE=\$RELEASES_DIR/\$COMMIT
 
-          
-          # Set permissions (no sudo needed since admin1 owns the files)
-          chmod -R 775 storage
-          chmod -R 775 bootstrap/cache
-          
-          # Link .env file
-          ln -nfs ../../.env .env
-          
-          # Link shared storage
-          ln -nfs ../../storage/app storage/app
-          ln -nfs ../../storage/framework storage/framework
-          ln -nfs ../../storage/logs storage/logs
-          
-          # Switch current release FIRST
-          cd /opt/api-mongo
-          ln -nfs releases/${COMMIT_SHORT_SHA} current
+        cd \$APP_DIR
 
-          # Now run the optimization IN THE NEW RELEASE
-          cd /opt/api-mongo/current
+        echo "🚀 Deploying release \$COMMIT"
 
-          php artisan optimize:clear
-          php artisan config:cache
-          php artisan route:cache
-          php artisan view:cache
-          php artisan optimize
+        mkdir -p \$NEW_RELEASE
+        cd \$NEW_RELEASE
 
-          
-          # Clean up old releases (keep last 5)
-          ls -1dt releases/* 2>/dev/null | tail -n +6 | xargs rm -rf
-          
-          # Reload PHP-FPM with sudo (this might still need passwordless sudo setup)
-          #sudo systemctl reload php8.2-fpm
-          
-          echo '✅ Laravel API deployed successfully! Release: ${COMMIT_SHORT_SHA}'
-        "
+        git clone https://github.com/$REPO . --depth=1
+
+        composer install \
+          --no-dev \
+          --optimize-autoloader \
+          --no-interaction \
+          --prefer-dist
+
+        ln -nfs \$APP_DIR/.env .env
+        ln -nfs \$APP_DIR/storage storage
+        ln -nfs \$APP_DIR/database database
+
+        mkdir -p storage/framework/{cache,sessions,views}
+        mkdir -p storage/logs
+        mkdir -p bootstrap/cache
+
+        chown -R www-data:www-data \$NEW_RELEASE
+        chmod -R 775 storage bootstrap/cache
+
+        php artisan migrate --force
+        php artisan test --env=production
+
+        ln -nfs \$NEW_RELEASE \$APP_DIR/current
+
+        cd \$APP_DIR/current
+        php artisan optimize:clear
+        php artisan config:cache
+        php artisan route:cache
+        php artisan view:cache
+        php artisan optimize
+
+        ls -1dt \$RELEASES_DIR/* | tail -n +6 | xargs rm -rf
+
+        echo "✅ Deployment successful: \$COMMIT"
+        EOF
