@@ -2,7 +2,8 @@ name: Deploy Laravel API to VPS
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   deploy:
@@ -20,26 +21,31 @@ jobs:
 
       - name: Deploy to VPS
         run: |
+          set -e
+
           mkdir -p ~/.ssh
           echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
+          COMMIT_SHORT_SHA=${GITHUB_SHA:0:8}
+          REPO=${{ github.repository }}
+
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-          ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << 'EOF'
+          ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << EOF
             set -e
 
             APP_DIR=/opt/api-mongo
-            RELEASES_DIR=$APP_DIR/releases
-            COMMIT=${GITHUB_SHA:0:8}
-            NEW_RELEASE=$RELEASES_DIR/$COMMIT
+            RELEASES_DIR=\$APP_DIR/releases
+            COMMIT=$COMMIT_SHORT_SHA
+            NEW_RELEASE=\$RELEASES_DIR/\$COMMIT
 
-            echo "🚀 Deploying release $COMMIT"
+            echo "🚀 Deploying release \$COMMIT"
 
-            mkdir -p $NEW_RELEASE
-            cd $NEW_RELEASE
+            mkdir -p \$NEW_RELEASE
+            cd \$NEW_RELEASE
 
-            git clone https://github.com/${{ github.repository }} . --depth=1
+            git clone https://github.com/$REPO . --depth=1
 
             composer install \
               --no-dev \
@@ -48,22 +54,22 @@ jobs:
               --prefer-dist
 
             # Shared resources
-            ln -nfs $APP_DIR/.env .env
-            ln -nfs $APP_DIR/storage storage
-            ln -nfs $APP_DIR/database database
+            ln -nfs \$APP_DIR/.env .env
+            ln -nfs \$APP_DIR/storage storage
+            ln -nfs \$APP_DIR/database database
 
-            # Bootstrap cache
+            # Bootstrap cache (per release)
             mkdir -p bootstrap/cache
             chmod -R 775 bootstrap/cache
 
             # Storage permissions (shared)
-            chown -R www-data:www-data $APP_DIR/storage
-            chmod -R 775 $APP_DIR/storage
+            chown -R www-data:www-data \$APP_DIR/storage
+            chmod -R 775 \$APP_DIR/storage
 
             # Activate release
-            ln -nfs $NEW_RELEASE $APP_DIR/current
+            ln -nfs \$NEW_RELEASE \$APP_DIR/current
 
-            cd $APP_DIR/current
+            cd \$APP_DIR/current
             php artisan migrate --force
             php artisan optimize:clear
             php artisan config:cache
@@ -72,7 +78,7 @@ jobs:
             php artisan optimize
 
             # Cleanup old releases (keep last 5)
-            ls -1dt $RELEASES_DIR/* | tail -n +6 | xargs rm -rf
+            ls -1dt \$RELEASES_DIR/* | tail -n +6 | xargs rm -rf
 
-            echo "✅ Deployment successful: $COMMIT"
+            echo "✅ Deployment successful: \$COMMIT"
           EOF
