@@ -136,7 +136,7 @@ class User extends BaseMongoModel
             ],
 
             'admin' => [
-                'orders:read',
+                'orders:read'
             ],
 
             default => [],

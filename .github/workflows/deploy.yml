@@ -58,19 +58,29 @@ jobs:
             ln -nfs \$APP_DIR/storage storage
             ln -nfs \$APP_DIR/database database
 
-            # Bootstrap cache (per release)
+            # Per-release cache dir
             mkdir -p bootstrap/cache
             chmod -R 775 bootstrap/cache
 
-            # Storage permissions (shared)
-            chmod -R 775 $APP_DIR/storage || true
+            # Ensure shared storage is writable (no chown needed)
+            chmod -R 775 \$APP_DIR/storage || true
 
-            # Activate release
+            # Activate release FIRST
             ln -nfs \$NEW_RELEASE \$APP_DIR/current
 
             cd \$APP_DIR/current
-            php artisan migrate --force
+
+            # Force a clean Laravel boot
             php artisan optimize:clear
+            php artisan config:clear
+            php artisan cache:clear
+            php artisan view:clear
+
+            php artisan key:generate --force || true
+            php artisan storage:link || true
+
+            # Migrate & warm caches
+            php artisan migrate --force
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache

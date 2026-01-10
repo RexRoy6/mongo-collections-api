@@ -13,6 +13,7 @@ use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\BusinessIdentificationController;
 use App\Http\Controllers\AuthController;
 use App\Events\OrderCreated;
+use App\Http\Controllers\adminUserM;
 
 
 // ========== ROUTES WITH API KEY VALIDATION ==========
@@ -115,6 +116,19 @@ Route::middleware(['api.solicitudes'])->group(function () {
 
 
             });
+            // start
+            Route::prefix('management')->group(function () {
+
+                 // KITCHEN / BARISTA LIST (today)
+                Route::get('/sales')
+                    ->middleware('abilities:orders:read')//viene orders, por ques la collecion que vamos a estar protegiendo
+                    ->uses([adminUserM::class, 'sales']);
+
+
+            });
+            // adminUser end
+
+
         });
     });
 
