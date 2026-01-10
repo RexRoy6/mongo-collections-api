@@ -63,8 +63,7 @@ jobs:
             chmod -R 775 bootstrap/cache
 
             # Storage permissions (shared)
-            chown -R www-data:www-data \$APP_DIR/storage
-            chmod -R 775 \$APP_DIR/storage
+            chmod -R 775 $APP_DIR/storage || true
 
             # Activate release
             ln -nfs \$NEW_RELEASE \$APP_DIR/current
