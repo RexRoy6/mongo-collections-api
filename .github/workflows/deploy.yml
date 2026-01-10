@@ -1,79 +1,58 @@
-name: Deploy Laravel API to VPS
+- name: Deploy to VPS
+  run: |
+    mkdir -p ~/.ssh
+    echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+    chmod 600 ~/.ssh/deploy_key
+    ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
-on:
-  push:
-    branches: [ main ]
+    ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+    ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << 'EOF'
+      set -e
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
+    APP_DIR=/opt/api-mongo
+    RELEASES_DIR=$APP_DIR/releases
+    COMMIT=${GITHUB_SHA:0:8}
+    NEW_RELEASE=$RELEASES_DIR/$COMMIT
 
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    echo "🚀 Deploying release $COMMIT"
 
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.2'
-        extensions: mongodb
+    mkdir -p $NEW_RELEASE
+    cd $NEW_RELEASE
 
-    - name: Deploy to VPS
-      run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
-        chmod 600 ~/.ssh/deploy_key
-        ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+    git clone https://github.com/${{ github.repository }} . --depth=1
 
-        COMMIT_SHORT_SHA=${GITHUB_SHA:0:8}
-        REPO=${{ github.repository }}
+    composer install \
+      --no-dev \
+      --optimize-autoloader \
+      --no-interaction \
+      --prefer-dist
 
-        ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-        ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << EOF
-        set -e
+    # Shared resources
+    ln -nfs $APP_DIR/.env .env
+    ln -nfs $APP_DIR/storage storage
+    ln -nfs $APP_DIR/database database
 
-        APP_DIR=/opt/api-mongo
-        RELEASES_DIR=\$APP_DIR/releases
-        COMMIT=$COMMIT_SHORT_SHA
-        NEW_RELEASE=\$RELEASES_DIR/\$COMMIT
+    # Bootstrap cache
+    mkdir -p bootstrap/cache
+    chmod -R 775 bootstrap/cache
 
-        cd \$APP_DIR
+    # Storage permissions (shared)
+    chown -R www-data:www-data $APP_DIR/storage
+    chmod -R 775 $APP_DIR/storage
 
-        echo "🚀 Deploying release \$COMMIT"
+    # Activate release
+    ln -nfs $NEW_RELEASE $APP_DIR/current
 
-        mkdir -p \$NEW_RELEASE
-        cd \$NEW_RELEASE
+    cd $APP_DIR/current
+    php artisan migrate --force
+    php artisan optimize:clear
+    php artisan config:cache
+    php artisan route:cache
+    php artisan view:cache
+    php artisan optimize
 
-        git clone https://github.com/$REPO . --depth=1
+    # Cleanup old releases (keep last 5)
+    ls -1dt $RELEASES_DIR/* | tail -n +6 | xargs rm -rf
 
-        composer install \
-          --no-dev \
-          --optimize-autoloader \
-          --no-interaction \
-          --prefer-dist
-
-        ln -nfs \$APP_DIR/.env .env
-        ln -nfs \$APP_DIR/storage storage
-        ln -nfs \$APP_DIR/database database
-
-        mkdir -p storage/framework/{cache,sessions,views}
-        mkdir -p storage/logs
-        mkdir -p bootstrap/cache
-
-        chmod -R 775 storage bootstrap/cache
-
-        php artisan migrate --force
-
-        ln -nfs \$NEW_RELEASE \$APP_DIR/current
-
-        cd \$APP_DIR/current
-        php artisan optimize:clear
-        php artisan config:cache
-        php artisan route:cache
-        php artisan view:cache
-        php artisan optimize
-
-        ls -1dt \$RELEASES_DIR/* | tail -n +6 | xargs rm -rf
-
-        echo "✅ Deployment successful: \$COMMIT"
-        EOF
+    echo "✅ Deployment successful: $COMMIT"
+    EOF
