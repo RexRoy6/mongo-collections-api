@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use App\Models\Order;
+use Carbon\Carbon;
+
 
 class adminUserM extends Controller
 {
@@ -13,7 +15,7 @@ class adminUserM extends Controller
     {
 
         try {
-             $business = $request->get('current_business');
+            $business = $request->get('current_business');
             if (!$business) {
                 return response()->json([
                     'error' => 'business_context_required',
@@ -45,23 +47,65 @@ class adminUserM extends Controller
                     ], 401);
                 }
             }
+
+
+            $from = $request->query('from')
+                ? Carbon::parse($request->query('from'))->startOfDay()
+                : Carbon::now()->startOfDay();
+
+            $to = $request->query('to')
+                ? Carbon::parse($request->query('to'))->endOfDay()
+                : Carbon::now()->endOfDay();
+
+
+
             $orders = Order::where('business_uuid', $business->uuid)
-                    ->orderBy('created_at', 'desc')
-                    ->where('current_status','delivered')
-                    ->select('total')
-                    ->get();
-//aqui quiero filtrar las ordenes por parametro de rango de tiempo $time
-//filtrar solo las que estan como ready nadamas
-// me regresara :
-//ventas en  monto total segun el parametro $time
-//desglose de productos vendidos totales y su total segun el mismo $time
+                ->where('current_status', 'delivered')
+                ->whereBetween('created_at', [$from, $to])
+                ->orderBy('created_at', 'desc')
+                ->get();
 
-             dd( $orders->first());
+            //counters
+            $totalSales = 0;
+            $totalSalesCents = 0;
+            $products = [];
+            foreach ($orders as $order) {
+                // Total sales
+                $totalSales += $order->solicitud['total'] ?? 0;
+                $totalSalesCents += $order->solicitud['total_cents'] ?? 0;
 
+                // Product breakdown
+                foreach ($order->solicitud['items'] as $item) {
+                    $name = $item['name'];
 
+                    if (!isset($products[$name])) {
+                        $products[$name] = [
+                            'name' => $name,
+                            'qty' => 0,
+                            'total' => 0,
+                            'total_cents' => 0,
+                        ];
+                    }
 
+                    $products[$name]['qty'] += $item['qty'];
+                    $products[$name]['total'] += $item['line_total'];
+                    $products[$name]['total_cents'] += $item['line_total_cents'];
+                }
+            }
 
-            
+            return response()->json([
+                'meta' => [
+                    'from' => $from->toDateTimeString(),
+                    'to' => $to->toDateTimeString(),
+                    'orders_count' => $orders->count(),
+                    'currency' => 'MXN',
+                ],
+                'totals' => [
+                    'sales' => $totalSales,
+                    'sales_cents' => $totalSalesCents,
+                ],
+                'products' => array_values($products),
+            ]);
         } catch (\Exception $e) {
             Log::error("Error in sales adminUserM", [
                 'error' => $e->getMessage(),
