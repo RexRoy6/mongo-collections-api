@@ -47,6 +47,8 @@ class adminUserM extends Controller
             }
             $orders = Order::where('business_uuid', $business->uuid)
                     ->orderBy('created_at', 'desc')
+                    ->where('current_status','delivered')
+                    ->select('total')
                     ->get();
 //aqui quiero filtrar las ordenes por parametro de rango de tiempo $time
 //filtrar solo las que estan como ready nadamas
