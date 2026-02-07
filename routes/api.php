@@ -70,6 +70,7 @@ Route::middleware(['api.solicitudes'])->group(function () {
         // Business menus
         Route::get('/menus', [MenuController::class, 'getMenuByKey']);
         Route::post('/menus', [MenuController::class, 'createMenu']);
+        Route::put('/menus/{menu_key}', [MenuController::class, 'updateMenu']);
 
 
          // Business menus
