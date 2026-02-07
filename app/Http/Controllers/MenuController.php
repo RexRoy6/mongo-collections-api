@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Menu;
 use Illuminate\Support\Facades\Log;
 use App\Helpers\BusinessHelper;
+use Illuminate\Support\Facades\DB;
 
 class MenuController extends Controller
 {
@@ -43,38 +44,47 @@ class MenuController extends Controller
             'menu_key'  => 'required|string',
             'menu_info' => 'nullable|string',
             'items'     => 'required|array|min:1',
-            'items.*.name'  => 'required|string',
-            'items.*.price' => 'required|numeric|min:0',
+            'items.*.name'     => 'required|string',
+            'items.*.price'    => 'required|numeric|min:0',
             'items.*.category' => 'nullable|string',
             'items.*.options'  => 'nullable|array',
         ]);
 
-        $menu = Menu::forCurrentBusiness()
-            ->where('menu_key', $validated['menu_key'])
-            ->where('is_active', true)
-            ->first();
+        $businessUuid = BusinessHelper::uuid();
 
-        if ($menu) {
-            return response()->json([
-                'message' => 'Active menu already exists'
-            ], 409);
-        }
+        return DB::transaction(function () use ($validated, $businessUuid) {
 
-        $menu = Menu::create([
-            'menu_key'      => $validated['menu_key'],
-            'menu_info'     => $validated['menu_info'] ?? '',
-            'items'         => $validated['items'],
-            'business_uuid' =>  BusinessHelper::uuid(),
-            'is_active'     => true,
-            'version'       => 1
-        ]);
+            // 🔍 Get latest menu version
+            $latestMenu = Menu::where('business_uuid', $businessUuid)
+                ->where('menu_key', $validated['menu_key'])
+                ->orderByDesc('version')
+                ->first();
 
-        return response()->json($menu, 201);
+            $nextVersion = $latestMenu ? $latestMenu->version + 1 : 1;
+
+            // 🔒 Deactivate previous active menu
+            Menu::where('business_uuid', $businessUuid)
+                ->where('menu_key', $validated['menu_key'])
+                ->where('is_active', true)
+                ->update(['is_active' => false]);
+
+            // ✅ Create new active menu
+            $menu = Menu::create([
+                'business_uuid' => $businessUuid,
+                'menu_key'      => $validated['menu_key'],
+                'menu_info'     => $validated['menu_info'] ?? '',
+                'items'         => $validated['items'],
+                'version'       => $nextVersion,
+                'is_active'     => true,
+            ]);
+
+            return response()->json($menu, 201);
+        });
 
     } catch (\Illuminate\Validation\ValidationException $e) {
         return response()->json([
             'message' => 'Invalid menu data',
-            'errors' => $e->errors()
+            'errors'  => $e->errors(),
         ], 422);
     }
 }
@@ -86,6 +96,11 @@ public function updateMenu(Request $request, $menuKey)
         ->where('is_active', true)
         ->firstOrFail();
 
+    if ($oldMenu->is_active) {
+    return response()->json([
+        'message' => 'Active menus cannot be edited. Create a new version instead.'
+    ], 409);
+}
     // deactivate old
     $oldMenu->update(['is_active' => false]);
 
