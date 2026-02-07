@@ -46,7 +46,8 @@ Route::middleware(['api.solicitudes'])->group(function () {
         Route::patch('/business/{businessUuid}/toggle-status', [BusinessController::class, 'toggleBusinessStatus']);
 
         ///crear cocina hotel y cuartos de hotel
-        Route::post('createMenu', [AdminController::class, 'createMenu']);
+        //ruta desactivada
+        //Route::post('createMenu', [AdminController::class, 'createMenu']);
         //create users for other business
         Route::post('createUser', [AdminController::class, 'create_user']);
 
@@ -68,6 +69,10 @@ Route::middleware(['api.solicitudes'])->group(function () {
 
         // Business menus
         Route::get('/menus', [MenuController::class, 'getMenuByKey']);
+        Route::post('/menus', [MenuController::class, 'createMenu']);
+
+
+         // Business menus
 
         // Authentication refactor
         Route::prefix('auth')->group(function () {

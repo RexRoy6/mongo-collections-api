@@ -7,20 +7,25 @@ use App\Models\Traits\BelongsToBusiness;
 
 class Menu extends BaseMongoModel
 {
-    use BelongsToBusiness; 
-    
+    use BelongsToBusiness;
+
     protected $collection = 'menus';
 
     protected $fillable = [
         'business_uuid',
-        'menu_key',     // Example: 'menu_cafe', 'menu_hotel', 'menu_breakfast'
-        'menu_info',    // Description: "menu from cafe"
-        'items',        // Array of menu items
+        'menu_key',
+        'menu_info',
+        'items',
+        'is_active',
+        'version'
     ];
 
     protected $attributes = [
-        'items' => []
+        'items' => [],
+        'is_active' => true,
+        'version' => 1
     ];
+
 
     public static function rules()
     {
@@ -28,10 +33,17 @@ class Menu extends BaseMongoModel
             'menu_key'  => 'required|string',
             'menu_info' => 'nullable|string',
             'items'     => 'required|array|min:1',
-            'items.*.name'  => 'required|string',
-            'items.*.price' => 'required|numeric|min:0',
-            'items.*.image' => 'nullable|string',
-            'currency' => 'required|string|in:mxn,usd'
+
+            'items.*.id'       => 'nullable|string',
+            'items.*.name'     => 'required|string',
+            'items.*.price'    => 'required|numeric|min:0',
+            'items.*.image'    => 'nullable|string',
+            'items.*.category' => 'nullable|string',
+
+            'items.*.options' => 'nullable|array',
+            'items.*.options.*.type'   => 'required_with:items.*.options|string|in:single,multiple',
+            'items.*.options.*.values' => 'required_with:items.*.options|array|min:1',
+            'items.*.options.*.values.*' => 'string',
         ];
     }
 }
