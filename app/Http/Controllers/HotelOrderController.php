@@ -32,6 +32,7 @@ class HotelOrderController extends Controller
                 'solicitud.note' => 'nullable|string',
                 'solicitud.name' => 'nullable|string|max:255',
                 'solicitud.currency' => 'required|string|in:mxn,usd',
+                'solicitud.payment_method' => 'required|string|in:cash,card,transfer',
             ]);
             $user = $request->user();
             if (!$user) {
@@ -178,6 +179,7 @@ class HotelOrderController extends Controller
             $finalSolicitud['total'] = $totalCents / 100;
             $finalSolicitud['total_cents'] = $totalCents;
             $finalSolicitud['currency'] = $validated['solicitud']['currency'];
+            $finalSolicitud['payment_method'] = $validated['solicitud']['payment_method'];
             $finalSolicitud['guest_room'] = $user->room_number;
 
             // 9) Create order WITH BUSINESS CONTEXT
