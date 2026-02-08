@@ -26,14 +26,19 @@ class HotelOrderController extends Controller
 
             // 2) Validate incoming payload
             $validated = $request->validate([
-                // 'menu_key' => 'nullable|string',
                 'solicitud' => 'required|array',
+
                 'solicitud.items' => 'required|array|min:1',
+                'solicitud.items.*.name' => 'required|string',
+                'solicitud.items.*.qty' => 'required|integer|min:1',
+                'solicitud.items.*.options' => 'nullable|array',
+
                 'solicitud.note' => 'nullable|string',
                 'solicitud.name' => 'nullable|string|max:255',
                 'solicitud.currency' => 'required|string|in:mxn,usd',
                 'solicitud.payment_method' => 'required|string|in:cash,card,transfer',
             ]);
+
             $user = $request->user();
             if (!$user) {
                 return response()->json([
@@ -136,6 +141,8 @@ class HotelOrderController extends Controller
                 }
 
                 $menuItem = $lookup[$nameKey];
+                $options = $it['options'] ?? [];
+
 
                 // Validate quantity
                 $qty = isset($it['qty']) ? (int)$it['qty'] : 1;
@@ -168,6 +175,7 @@ class HotelOrderController extends Controller
                     'unit_price_cents' => $priceCents,
                     'line_total' => $lineTotalCents / 100,
                     'line_total_cents' => $lineTotalCents,
+                    'options' => $options,
                     'image' => $menuItem['image'] ?? null
                 ];
             }
@@ -263,7 +271,7 @@ class HotelOrderController extends Controller
                 ], 401);
             }
 
-             //if block para decidir mensaje en base a rol
+            //if block para decidir mensaje en base a rol
             if ($user->role == 'client') {
 
                 if ($user->is_occupied != true) {
@@ -342,7 +350,7 @@ class HotelOrderController extends Controller
             }
 
 
-               //if block para decidir mensaje en base a rol
+            //if block para decidir mensaje en base a rol
             if ($user->role == 'client') {
 
                 if ($user->is_occupied != true) {
