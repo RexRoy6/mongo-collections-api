@@ -112,10 +112,17 @@ class HotelOrderController extends Controller
             }
 
             // 6) Build lookup map (name -> item)
+            // $lookup = [];
+            // foreach ($menu->items as $mi) {
+            //     $lookup[strtolower($mi['name'])] = $mi;
+            // }
+
+
             $lookup = [];
             foreach ($menu->items as $mi) {
-                $lookup[strtolower($mi['name'])] = $mi;
+                $lookup[$this->normalizeName($mi['name'])] = $mi;
             }
+
 
             // 7) Validate each ordered item and compute totals
             $orderItems = [];
@@ -129,7 +136,8 @@ class HotelOrderController extends Controller
                     ], 422);
                 }
 
-                $nameKey = strtolower($it['name']);
+                $nameKey = $this->normalizeName($it['name']);
+
                 if (!isset($lookup[$nameKey])) {
                     return response()->json([
                         'error' => 'item_not_in_menu',
@@ -139,6 +147,7 @@ class HotelOrderController extends Controller
                         'available_items' => array_column($menu->items, 'name')
                     ], 422);
                 }
+
 
                 $menuItem = $lookup[$nameKey];
                 $options = $it['options'] ?? [];
@@ -617,17 +626,21 @@ class HotelOrderController extends Controller
             }
 
             // Build menu lookup
+            // $lookup = [];
+            // foreach ($menu->items as $mi) {
+            //     $lookup[strtolower($mi['name'])] = $mi;
+            // }
+
             $lookup = [];
             foreach ($menu->items as $mi) {
-                $lookup[strtolower($mi['name'])] = $mi;
+                $lookup[$this->normalizeName($mi['name'])] = $mi;
             }
-
             // Rebuild items & totals
             $orderItems = [];
             $totalCents = 0;
 
             foreach ($validated['items'] as $idx => $item) {
-                $key = strtolower($item['name']);
+                $key =  $this->normalizeName($item['name']);
 
                 if (!isset($lookup[$key])) {
                     return response()->json([
@@ -683,5 +696,10 @@ class HotelOrderController extends Controller
                 'errors' => $e->errors()
             ], 422);
         }
+    }
+
+    public function normalizeName($str)
+    {
+        return str_replace(['-', ' '], '', strtolower($str));
     }
 }
