@@ -92,11 +92,12 @@ class HotelOrderController extends Controller
                 ], 403);
             }
 
-            // 4) Determine menu_key (use provided or default)
-            //$menuKey = $validated['menu_key'] ?? 'menu_cafe'; //aqui cambiarloo, reoq eue ese menu no existe ya
             // 5) Load menu WITHIN THIS BUSINESS
             $menu = Menu::where('business_uuid', $business->uuid)
+                ->where('is_active', true)
+                ->orderByDesc('version')
                 ->first();
+
 
             $menuKey  = $menu->menu_key;
 
