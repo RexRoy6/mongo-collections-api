@@ -587,11 +587,13 @@ class HotelOrderController extends Controller
                 ], 401);
             }
 
+            // ✅ Validation (qty required for consistency with create)
             $validated = $request->validate([
                 'order_uuid' => 'required|uuid',
                 'items' => 'required|array|min:1',
                 'items.*.name' => 'required|string',
-                'items.*.qty' => 'nullable|integer|min:1',
+                'items.*.qty' => 'required|integer|min:1',
+                'items.*.options' => 'nullable|array',
                 'note' => 'nullable|string',
             ]);
 
@@ -622,6 +624,7 @@ class HotelOrderController extends Controller
                 ->where('is_active', true)
                 ->orderByDesc('version')
                 ->first();
+
             if (!$menu) {
                 return response()->json([
                     'error' => 'menu_not_found',
@@ -630,21 +633,21 @@ class HotelOrderController extends Controller
             }
 
             // Build menu lookup
-            // $lookup = [];
-            // foreach ($menu->items as $mi) {
-            //     $lookup[strtolower($mi['name'])] = $mi;
-            // }
-
             $lookup = [];
             foreach ($menu->items as $mi) {
                 $lookup[$this->normalizeName($mi['name'])] = $mi;
             }
+
+            // ⭐ Preserve existing items (for option fallback)
+            $existingItems = collect($order->solicitud['items'] ?? [])
+                ->keyBy(fn($i) => $this->normalizeName($i['name']));
+
             // Rebuild items & totals
             $orderItems = [];
             $totalCents = 0;
 
             foreach ($validated['items'] as $idx => $item) {
-                $key =  $this->normalizeName($item['name']);
+                $key = $this->normalizeName($item['name']);
 
                 if (!isset($lookup[$key])) {
                     return response()->json([
@@ -653,9 +656,22 @@ class HotelOrderController extends Controller
                     ], 422);
                 }
 
-                $qty = isset($item['qty']) ? (int) $item['qty'] : 1;
                 $menuItem = $lookup[$key];
+                $qty = (int) $item['qty'];
 
+                // ✅ Prevent invalid menu price
+                if (!is_numeric($menuItem['price'])) {
+                    return response()->json([
+                        'error' => 'invalid_menu_price',
+                        'message' => "Invalid menu price for {$menuItem['name']}"
+                    ], 500);
+                }
+
+                // ⭐ Preserve existing options if not sent
+                $options = $item['options']
+                    ?? ($existingItems[$key]['options'] ?? []);
+
+                // Calculate price
                 $priceCents = (int) round($menuItem['price'] * 100);
                 $lineTotalCents = $priceCents * $qty;
                 $totalCents += $lineTotalCents;
@@ -667,6 +683,7 @@ class HotelOrderController extends Controller
                     'unit_price_cents' => $priceCents,
                     'line_total' => $lineTotalCents / 100,
                     'line_total_cents' => $lineTotalCents,
+                    'options' => $options,
                     'image' => $menuItem['image'] ?? null,
                 ];
             }
@@ -681,8 +698,7 @@ class HotelOrderController extends Controller
             $order->solicitud = $solicitud;
             $order->save();
 
-
-            // Optional: add audit note to status history
+            // Audit history
             $order->addStatus(
                 status: $order->current_status,
                 updatedBy: $user->role,
@@ -701,6 +717,7 @@ class HotelOrderController extends Controller
             ], 422);
         }
     }
+
 
     public function normalizeName($str)
     {
