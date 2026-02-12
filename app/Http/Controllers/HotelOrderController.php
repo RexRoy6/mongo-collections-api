@@ -618,7 +618,10 @@ class HotelOrderController extends Controller
             }
 
             // Load menu
-            $menu = Menu::where('business_uuid', $business->uuid)->first();
+            $menu = Menu::where('business_uuid', $business->uuid)
+                ->where('is_active', true)
+                ->orderByDesc('version')
+                ->first();
             if (!$menu) {
                 return response()->json([
                     'error' => 'menu_not_found',
